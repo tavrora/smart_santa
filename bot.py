@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
 # import config
+import os
 import telebot
 import re
 from idlelib import query
 from datetime import datetime
 from telebot import (apihelper, types)
-from telebot.types import ReplyKeyboardRemove
+# from config import (token, socks5)
+from settings import *
 
-from config import (token, socks5)
+
 
 apihelper.proxy = {'https': socks5}
 bot = telebot.TeleBot(token)
