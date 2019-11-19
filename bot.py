@@ -22,7 +22,7 @@ def send_welcome(message):
         start_param = message.text.split()
         if len(start_param) == 1:
             print("нет параметра запуска")
-            bot.send_message(message.chat.id, "Привет! Я Санта-бот, помогу провести новогодний розыгрыш подароков в вашей компании!")
+            bot.send_message(message.chat.id, "Привет! Я Санта-бот, помогу провести новогодний розыгрыш подарков в вашей компании!")
             keyboard = types.InlineKeyboardMarkup(row_width=2)  # наша клавиатура шириной в 2 кнопи в ряду
             key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')  # кнопка «Да»
             key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
