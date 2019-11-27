@@ -202,6 +202,16 @@ def send_welcome(message):
     logmess(message)
 
 
+@bot.message_handler(commands=['rungame'])
+def send_welcome(message):
+    if message.chat.type == 'private':
+        bot.send_message(message.chat.id, text='(здесь будет запуск для ведущего!)')
+        # выбираем из бд
+    else:
+        bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
+    logmess(message)
+
+
 # # бот дразнится
 # @bot.message_handler(func=lambda message: True)
 # def echo_all(message):
