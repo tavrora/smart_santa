@@ -2,11 +2,14 @@
 
 # import config
 import os
+
+
 import telebot
 import sqlite3
 import secrets
 import re
 from idlelib import query
+from random import shuffle
 from datetime import datetime
 from telebot import (apihelper, types)
 # from config import (token, socks5)
@@ -122,7 +125,7 @@ def callback_worker(call):
     if call.data == 'yes_group':
         # скрываем клаву после выбора
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-        get_group_name(call.message)
+        get_group_name(call.message) # вызываем функцию получения названия группы
         # код сохранения данных, или их обработки
     elif call.data == 'no_group':
         bot.send_message(call.message.chat.id, text='ок. /newgroup если передумаешь или присоединяйся '
@@ -152,8 +155,11 @@ def callback_worker(call):
                                                                        'user_id': current_user[0][0], 'group_id': group_id[0][0]})
         conn.commit()
         curs.close()
-        bot.send_message(call.message.chat.id, text='(потом спрошу у тебя пожелание 🎁)')
+        bot.send_message(call.message.chat.id, text='Введи пожелание к подарку или просто послание для своего Санты! 🎁 '
+                                                    'Если хочешь сюрприз - сообщи об этом! '
+                                                    '(Пока ты не можешь отказаться от этого шага.)')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+        enter_wish(call.message) # вызываем функцию получения пожелания от игрока
 
     elif call.data == 'no_part':
         bot.send_message(call.message.chat.id, text='Если передумаешь, набери команду /participate.')
@@ -161,11 +167,43 @@ def callback_worker(call):
     logcall(call)
 
 
+def enter_wish(message): # получаем пожелание к подарку
+    bot.send_message(message.chat.id, text='Жду пожелания.')
+    bot.register_next_step_handler(message, get_wish)
+    logmess(message)
+
+def get_wish(message):
+    print(f'пожелание игрока: {message.text}')
+
+    if message.text[0] != '/':
+        # работа с БД
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
+        # вспоминаем id пользователя в БД
+        curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+        current_user = curs.fetchall()
+        # вспоминаем id группы, в которую пришёл пользователь
+        curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': current_user[0][1]})
+        group_id = curs.fetchall()
+        # заносим/меняем пожелание в таблице связей
+        curs.execute('UPDATE Relations_user_group SET wish=:wish '
+                     'WHERE user_id=:user_id AND group_id=:group_id',
+                     {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
+        conn.commit()
+        curs.close()
+        bot.send_message(message.chat.id, text='Класс! Санта учтёт твоё пожелание (или нет). \n'
+                                               '(В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
+    else:
+        bot.send_message(message.chat.id, text='Это не похоже на пожелание. (В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
+    logmess(message)
+
+
 def get_group_name(message): # получаем название группы
     bot.send_message(message.chat.id, text='Напиши название группы и я пришлю тебе ссылку-приглашение. '
                                            'Название не должно начинаться со слеша.')
     bot.register_next_step_handler(message, link_generation)
     logmess(message)
+
 
 def link_generation(message):  # генерируем ссылку после получения названия
     print(message.text[0])
@@ -263,9 +301,85 @@ def send_welcome(message):
 def send_welcome(message):
     if message.chat.type == 'private':
         bot.send_message(message.chat.id, text='(здесь будет запуск для ведущего!)')
-        # выбираем из бд
+        # выбираем из бд активные группы текущего пользователя
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
+        curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+        leader_id = curs.fetchall()
+        curs.execute('SELECT title FROM Groups WHERE leader_id=:leader_id AND raffle=:raffle', {'leader_id': leader_id[0][0], 'raffle': 0})
+        list_active_groups = curs.fetchall()
+        print(list_active_groups)
+        if len(list_active_groups) == 0:
+            bot.send_message(message.chat.id, text='Оу, кажется, у тебя нет активных групп для розыгрыша!')
+        else:
+            keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
+            # необязатлеьные параметры кнопок (request_contact=True, request_location=True)
+            button_1 = types.KeyboardButton(text=list_active_groups[0][0]) # пока можно выбрать только ее
+            button_2 = types.KeyboardButton(text="группа 2") # ДОПИСАТЬ СОЗДАНИЕ КНОПОК ЧЕРЕЗ ЦИКЛ
+
+            keyboard.add(button_1, button_2)
+            bot.send_message(message.chat.id,
+                             "Выбери группу, в которой хочешь запустить розыгрыш! (Действие окончательно и необратимо.)",
+                             reply_markup=keyboard)
+
+            bot.register_next_step_handler(message, run_game)
+
+        conn.commit()
+        curs.close()
+
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
+    logmess(message)
+
+
+def run_game(message):
+    bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа "{message.text}"!')
+    # логика розыгрыша!
+    conn = sqlite3.connect("santa.db")
+    curs = conn.cursor()
+
+    # узнаём id выбранной группы
+    curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
+    group_id = curs.fetchall()
+
+    # выбираем id всех участников этой группы, сохраняем в список
+    curs.execute('SELECT user_id FROM Relations_user_group WHERE group_id=:group_id AND participation=:participation',
+                 {'group_id': group_id[0][0], 'participation': 1})
+    all_participants = curs.fetchall()
+    print('+++++++++++++++')
+    print(all_participants)
+    # формируем список из id участников
+    list_user_id = []
+    for i in range(len(all_participants)):
+        list_user_id.append(all_participants[i][0])
+
+    print(f'list: {list_user_id}')
+    # перемешиваем участников
+    shuffle(list_user_id)
+    print(f'shuf_list: {list_user_id}')
+
+    # создаем словарь Сант: ключ-игрок, значение-Санта
+    dict_sant = {}
+    for i in range(len(list_user_id)):
+        if i < len(list_user_id)-1:
+            print(list_user_id[i])
+            dict_sant.update({list_user_id[i]: list_user_id[i+1]})
+        else:
+            dict_sant.update({list_user_id[i]: list_user_id[0]})
+    print(dict_sant)
+
+    # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
+    # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
+    # curs.execute('SELECT us.first_name, us.last_name, rel.wish FROM Users as us '
+    #              'LEFT JOIN Relations_user_group as rel '
+    #              'ON us.id = rel.user_id WHERE us.id=:us.id, {'us.id': a})
+    #
+    # gamers = curs.fetchall()
+    # print(gamers)
+
+    conn.commit()
+    curs.close()
+
     logmess(message)
 
 
