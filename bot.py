@@ -267,7 +267,7 @@ def check_group_name(message):
     logmess(message)
 
 
-# генерация ссылки и занесение в БД
+# генерация ссылки и занесение данных в БД
 def link_generation(message):
     print(f'message.text: {message.text}')
 
