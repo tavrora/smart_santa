@@ -43,7 +43,7 @@ def send_welcome(message):
             print('есть параметр запуска:')
             print(start_param[1])
             # проверяем, что такая группа есть в БД и она активна (розыгрыша не было)
-            # устанавливаем соединение с БД (объект соединения) - не закрываю нигде
+            # устанавливаем соединение с БД (объект соединения)
             conn = sqlite3.connect("santa.db")
             # создаем объект Cursor для работы с его методом execute()
             curs = conn.cursor()
@@ -51,6 +51,7 @@ def send_welcome(message):
             curs.execute('SELECT * FROM Groups WHERE link=:link', {'link': start_param[1]})
             group_exists = curs.fetchall()
             print(f'есть группа: {group_exists}')
+
             # print(f'статус розыгрыша: raffle = {group_exists[0][3]}') # код падает, т.к группы еще может не быть
             print(f'количество групп: {len(group_exists)}')
 
@@ -206,87 +207,110 @@ def get_wish(message):
 def get_group_name(message): # получаем название группы
     bot.send_message(message.chat.id, text='Напиши название группы и я пришлю тебе ссылку-приглашение. '
                                            'Название не должно начинаться со слеша.')
-    bot.register_next_step_handler(message, link_generation)
+    bot.register_next_step_handler(message, check_group_name) # вызываем проверку названия
     logmess(message)
 
-
-def link_generation(message):  # генерируем ссылку после получения названия
+# проверяем валидность названия
+def check_group_name(message):
     print(message.text[0])
     print(f'название: {message.text}')
     # проверяем, что введено название, а не команда (и оно уникально)
-    conn = sqlite3.connect("santa.db")
-    curs = conn.cursor()
-    curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
-    user_id = curs.fetchall()
-    print(user_id)
-
-    # разный регистр - разное название (ЕСЛИ создающего ПОЛЬЗОВАТЕЛЯ НЕТ В БД - list index out of range)
-    # if len(user_id) != 0:
-    #     curs.execute('SELECT * FROM Groups WHERE leader_id=:leader_id and title=:title and raffle=:raffle',
-    #                  {'leader_id': user_id[0][0], 'title': message.text, 'raffle': 0})
-    #     group_exists = curs.fetchall()
-
-    # if message.text[0] == '/' or len(group_exists) != 0: # убрала проверку уникальности названия
     if message.text[0] == '/':
-        bot.send_message(message.chat.id, text='Проказник! Это не подходит для названия группы. '
+        bot.send_message(message.chat.id, text='Ой! Команда? Это не подходит для названия группы. '
                                                'Перейди по /newgroup, чтобы создать новую группу в будущем. '
                                                'Название должно быть уникально в рамках твоих активных групп.')
     else:
-        # генерация ссылки тут
-        link_part = secrets.token_urlsafe(12)
-        print(f'сгенерированная часть ссылки: {link_part}')
-        link_full = 'https://t.me/shanta_bot?start='+link_part
-        print(f'полная ссылка: {link_full}')
-
-        # всех в БД!
-        curs.execute('SELECT * FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
-        user_exists = curs.fetchall()
-        # если ведущего нет в БД, заносим его туда
-        if len(user_exists) == 0:
-            curs.execute('INSERT INTO Users(tg_id, username, first_name, last_name, current_group) '
-                         'VALUES (:tg_id, :username, :first_name, :last_name, :current_group)',
-                         {'tg_id': message.chat.id, 'username': message.chat.username,
-                          'first_name': message.chat.first_name, 'last_name': message.chat.last_name,
-                          'current_group': link_part})
-        # если ведущий есть в БД, обновляем его информацию на случай ее изменения
-        # или прихода по другой ссылке
-        else:
-            curs.execute('UPDATE Users SET username=:username, first_name=:first_name, '
-                         'last_name=:last_name, current_group=:current_group '
-                         'WHERE tg_id=:tg_id', {'username': message.chat.username,
-                         'first_name': message.chat.first_name, 'last_name': message.chat.last_name,
-                         'current_group': link_part, 'tg_id': message.chat.id})
-        # узнаем id ведущего, присвоенный в БД (автоинкремент)
+        # если создающего пользователя нет в БД, то проверку на уникальность делать не надо
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
         curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
         user_id = curs.fetchall()
-        # заносим новую группу в таблицу Group
-        curs.execute('INSERT INTO Groups(title, link, raffle, leader_id) '
-                     'VALUES (:title, :link, :raffle, :leader_id)',
-                     {'title': message.text, 'link': link_part,
-                      'raffle': 0, 'leader_id': user_id[0][0]})
-        # узнаем id группы, присвоенный в БД (автоинкремент)
-        curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': link_part})
-        group_new = curs.fetchall()
-        print(f'id новой группы: {group_new[0][0]}')
-        # устанавливаем связь ведущего и группы, если её ещё нет в БД (не повторный приход по ссылке)
-        curs.execute('SELECT * FROM Relations_user_group WHERE user_id=:user_id AND group_id=:group_id',
-                     {'user_id': user_id[0][0], 'group_id': group_new[0][0]})
-        relation_exists = curs.fetchall()
-        if len(relation_exists) == 0:
-            # сразу устанавливаем статус участия в 1
-            curs.execute('INSERT INTO Relations_user_group(user_id, group_id, participation) '
-                         'VALUES (:user_id, :group_id, :participation)',
-                         {'user_id': user_id[0][0], 'group_id': group_new[0][0], 'participation': 1})
+        print(user_id)
+        # если пользователь есть в БД
+        if len(user_id) != 0:
+            curs.execute('SELECT * FROM Groups WHERE leader_id=:leader_id and title=:title and raffle=:raffle',
+                         {'leader_id': user_id[0][0], 'title': message.text, 'raffle': 0})
+            group_exists = curs.fetchall()
+            # проверка уникальности названия (разный регистр - разное название)
+            if len(group_exists) != 0:
+                bot.send_message(message.chat.id, text='Проказник! Это не подходит для названия группы. '
+                                                       'Оно должно быть уникально в рамках твоих активных групп. '
+                                                       'Перейди по /newgroup, чтобы попробовать ещё раз.')
+            else:
+                conn.commit()
+                conn.close()
+                link_generation(message) # вызываем генерацию
+        # если пользователя нет в БД
+        else:
+            conn.commit()
+            conn.close()
+            link_generation(message) # вызываем генерацию
 
-        bot.send_message(message.chat.id, text=f'🎄 Годится-ягодица! Группа "{message.text}" создана!\n\n'
-                                               f'🎄 Вот ссылка-приглашение на участие для твоих друзей: '
-                                               f'{link_full}.\n\n'
-                                               f'🎄 Чтобы ввести своё пожелание к подарку используй /enterwish.\n'
-                                               f'🎄 Для отмены участия в розыгрыше: /leavegame.\n\n'
-                                               f'🎄 После регистрации всех желающих ты можешь запустить розыгрыш '
-                                               f'командой /rungame.\n\n')
-        conn.commit()
-        conn.close()
+    logmess(message)
+
+
+# генерация ссылки и занесение в БД
+def link_generation(message):
+    print(f'message.text: {message.text}')
+    bot.send_message(message.chat.id, text=f'Введено название: "{message.text}"')
+
+    # генерация ссылки
+    link_part = secrets.token_urlsafe(12)
+    print(f'сгенерированная часть ссылки: {link_part}')
+    link_full = 'https://t.me/shanta_bot?start=' + link_part
+    print(f'полная ссылка: {link_full}')
+
+    # сохранение в БД
+    conn = sqlite3.connect("santa.db")
+    curs = conn.cursor()
+    curs.execute('SELECT * FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+    user_exists = curs.fetchall()
+    # если ведущего нет в БД, заносим его туда
+    if len(user_exists) == 0:
+        curs.execute('INSERT INTO Users(tg_id, username, first_name, last_name, current_group) '
+                     'VALUES (:tg_id, :username, :first_name, :last_name, :current_group)',
+                     {'tg_id': message.chat.id, 'username': message.chat.username,
+                      'first_name': message.chat.first_name, 'last_name': message.chat.last_name,
+                      'current_group': link_part})
+    # если ведущий есть в БД, обновляем его информацию на случай ее изменения
+    # или прихода по другой ссылке
+    else:
+        curs.execute('UPDATE Users SET username=:username, first_name=:first_name, '
+                     'last_name=:last_name, current_group=:current_group '
+                     'WHERE tg_id=:tg_id', {'username': message.chat.username,
+                                            'first_name': message.chat.first_name, 'last_name': message.chat.last_name,
+                                            'current_group': link_part, 'tg_id': message.chat.id})
+    # узнаем id ведущего, присвоенный в БД (автоинкремент)
+    curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+    user_id = curs.fetchall()
+    # заносим новую группу в таблицу Group
+    curs.execute('INSERT INTO Groups(title, link, raffle, leader_id) '
+                 'VALUES (:title, :link, :raffle, :leader_id)',
+                 {'title': message.text, 'link': link_part,
+                  'raffle': 0, 'leader_id': user_id[0][0]})
+    # узнаем id группы, присвоенный в БД (автоинкремент)
+    curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': link_part})
+    group_new = curs.fetchall()
+    print(f'id новой группы: {group_new[0][0]}')
+    # устанавливаем связь ведущего и группы, если её ещё нет в БД (не повторный приход по ссылке)
+    curs.execute('SELECT * FROM Relations_user_group WHERE user_id=:user_id AND group_id=:group_id',
+                 {'user_id': user_id[0][0], 'group_id': group_new[0][0]})
+    relation_exists = curs.fetchall()
+    if len(relation_exists) == 0:
+        # сразу устанавливаем статус участия в 1
+        curs.execute('INSERT INTO Relations_user_group(user_id, group_id, participation) '
+                     'VALUES (:user_id, :group_id, :participation)',
+                     {'user_id': user_id[0][0], 'group_id': group_new[0][0], 'participation': 1})
+
+    bot.send_message(message.chat.id, text=f'🎄 Годится-ягодица! Группа "{message.text}" создана!\n\n'
+                                           f'🎄 Вот ссылка-приглашение на участие для твоих друзей: '
+                                           f'{link_full}.\n\n'
+                                           f'🎄 Чтобы ввести своё пожелание к подарку используй /enterwish.\n'
+                                           f'🎄 Для отмены участия в розыгрыше: /leavegame.\n\n'
+                                           f'🎄 После регистрации всех желающих ты можешь запустить розыгрыш '
+                                           f'командой /rungame.\n\n')
+    conn.commit()
+    conn.close()
     logmess(message)
 
 
