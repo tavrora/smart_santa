@@ -13,6 +13,8 @@ from random import shuffle
 from datetime import datetime
 from telebot import (apihelper, types)
 # from config import (token, socks5)
+from telebot.types import ReplyKeyboardRemove
+
 from settings import *
 
 
@@ -92,10 +94,16 @@ def send_welcome(message):
                     curs.execute('INSERT INTO Relations_user_group(user_id, group_id) '
                                  'VALUES (:user_id, :group_id)',
                                  {'user_id': user_id[0][0], 'group_id': group_exists[0][0]})
-                conn.commit()
-                curs.close()
 
-                bot.send_message(message.chat.id, text='Привет! Я Санта-бот и ты пришел ко мне по приглашению! '
+                # узнаем название группы, в которую пришел пользователь
+                curs.execute('SELECT title FROM Groups WHERE id=:id', {'id': group_exists[0][0]})
+                group_title = curs.fetchall()
+
+                conn.commit()
+                conn.close()
+                
+
+                bot.send_message(message.chat.id, text=f'Привет! Я Санта-бот и ты пришел ко мне по приглашению в группу "{group_title}"! '
                                                        'Для твоего подарка уже есть место под ёлкой!')
 
                 # клавиатура
@@ -110,10 +118,7 @@ def send_welcome(message):
                                                        'Ты можешь создать новую группу командой /newgroup.')
             else:
                 bot.send_message(message.chat.id, text='Ссылка запуска недействительна.')
-            # сохраняем изменения
-            conn.commit()
-            # закрываем соединение cursor
-            curs.close()
+
 
     else:
         bot.send_message(message.chat.id, 'Упс. Санта-бот работает только в режиме тет-а-тет.')
@@ -154,7 +159,7 @@ def callback_worker(call):
                      'WHERE user_id=:user_id AND group_id=:group_id', {'participation': 1,
                                                                        'user_id': current_user[0][0], 'group_id': group_id[0][0]})
         conn.commit()
-        curs.close()
+        conn.close()
         bot.send_message(call.message.chat.id, text='Введи пожелание к подарку или просто послание для своего Санты! 🎁 '
                                                     'Если хочешь сюрприз - сообщи об этом! '
                                                     '(Пока ты не можешь отказаться от этого шага.)')
@@ -190,7 +195,7 @@ def get_wish(message):
                      'WHERE user_id=:user_id AND group_id=:group_id',
                      {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
         conn.commit()
-        curs.close()
+        conn.close()
         bot.send_message(message.chat.id, text='Класс! Санта учтёт твоё пожелание (или нет). \n'
                                                '(В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
     else:
@@ -214,12 +219,15 @@ def link_generation(message):  # генерируем ссылку после п
     curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
     user_id = curs.fetchall()
     print(user_id)
-    # разный регистр - разное название
-    curs.execute('SELECT * FROM Groups WHERE leader_id=:leader_id and title=:title and raffle=:raffle',
-                 {'leader_id': user_id[0][0], 'title': message.text, 'raffle': 0})
-    group_exists = curs.fetchall()
 
-    if message.text[0] == '/' or len(group_exists) != 0:
+    # разный регистр - разное название (ЕСЛИ создающего ПОЛЬЗОВАТЕЛЯ НЕТ В БД - list index out of range)
+    # if len(user_id) != 0:
+    #     curs.execute('SELECT * FROM Groups WHERE leader_id=:leader_id and title=:title and raffle=:raffle',
+    #                  {'leader_id': user_id[0][0], 'title': message.text, 'raffle': 0})
+    #     group_exists = curs.fetchall()
+
+    # if message.text[0] == '/' or len(group_exists) != 0: # убрала проверку уникальности названия
+    if message.text[0] == '/':
         bot.send_message(message.chat.id, text='Проказник! Это не подходит для названия группы. '
                                                'Перейди по /newgroup, чтобы создать новую группу в будущем. '
                                                'Название должно быть уникально в рамках твоих активных групп.')
@@ -277,8 +285,8 @@ def link_generation(message):  # генерируем ссылку после п
                                                f'🎄 Для отмены участия в розыгрыше: /leavegame.\n\n'
                                                f'🎄 После регистрации всех желающих ты можешь запустить розыгрыш '
                                                f'командой /rungame.\n\n')
-    conn.commit()
-    curs.close()
+        conn.commit()
+        conn.close()
     logmess(message)
 
 
@@ -300,7 +308,6 @@ def send_welcome(message):
 @bot.message_handler(commands=['rungame'])
 def send_welcome(message):
     if message.chat.type == 'private':
-        bot.send_message(message.chat.id, text='(здесь будет запуск для ведущего!)')
         # выбираем из бд активные группы текущего пользователя
         conn = sqlite3.connect("santa.db")
         curs = conn.cursor()
@@ -313,11 +320,12 @@ def send_welcome(message):
             bot.send_message(message.chat.id, text='Оу, кажется, у тебя нет активных групп для розыгрыша!')
         else:
             keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
-            # необязатлеьные параметры кнопок (request_contact=True, request_location=True)
-            button_1 = types.KeyboardButton(text=list_active_groups[0][0]) # пока можно выбрать только ее
-            button_2 = types.KeyboardButton(text="группа 2") # ДОПИСАТЬ СОЗДАНИЕ КНОПОК ЧЕРЕЗ ЦИКЛ
+            # заносим названия активных групп в кнопки
+            for group in list_active_groups:
+                title = group[0]
+                button = types.KeyboardButton(text=title)
+                keyboard.add(button)
 
-            keyboard.add(button_1, button_2)
             bot.send_message(message.chat.id,
                              "Выбери группу, в которой хочешь запустить розыгрыш! (Действие окончательно и необратимо.)",
                              reply_markup=keyboard)
@@ -325,7 +333,7 @@ def send_welcome(message):
             bot.register_next_step_handler(message, run_game)
 
         conn.commit()
-        curs.close()
+        conn.close()
 
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
@@ -333,7 +341,7 @@ def send_welcome(message):
 
 
 def run_game(message):
-    bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа "{message.text}"!')
+    bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа "{message.text}"!', reply_markup=ReplyKeyboardRemove())
     # логика розыгрыша!
     conn = sqlite3.connect("santa.db")
     curs = conn.cursor()
@@ -342,43 +350,70 @@ def run_game(message):
     curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
     group_id = curs.fetchall()
 
-    # выбираем id всех участников этой группы, сохраняем в список
-    curs.execute('SELECT user_id FROM Relations_user_group WHERE group_id=:group_id AND participation=:participation',
-                 {'group_id': group_id[0][0], 'participation': 1})
-    all_participants = curs.fetchall()
-    print('+++++++++++++++')
-    print(all_participants)
-    # формируем список из id участников
-    list_user_id = []
-    for i in range(len(all_participants)):
-        list_user_id.append(all_participants[i][0])
+    if len(group_id) == 0:
+        bot.send_message(message.chat.id, text='Упс. Такой группы то нет.')
+    else:
+        # выбираем id всех участников этой группы, сохраняем в список - ПАДАЕТ, ЕСЛИ ГРУПП НЕТ
+        curs.execute('SELECT user_id FROM Relations_user_group WHERE group_id=:group_id AND participation=:participation',
+                     {'group_id': group_id[0][0], 'participation': 1})
+        all_participants = curs.fetchall()
+        print('+++++++++++++++')
+        print(all_participants)
+        # формируем список из id участников
+        list_user_id = []
+        for i in range(len(all_participants)):
+            list_user_id.append(all_participants[i][0])
 
-    print(f'list: {list_user_id}')
-    # перемешиваем участников
-    shuffle(list_user_id)
-    print(f'shuf_list: {list_user_id}')
+        print(f'list: {list_user_id}')
+        # перемешиваем участников
+        shuffle(list_user_id)
+        print(f'shuf_list: {list_user_id}')
 
-    # создаем словарь Сант: ключ-игрок, значение-Санта
-    dict_sant = {}
-    for i in range(len(list_user_id)):
-        if i < len(list_user_id)-1:
-            print(list_user_id[i])
-            dict_sant.update({list_user_id[i]: list_user_id[i+1]})
-        else:
-            dict_sant.update({list_user_id[i]: list_user_id[0]})
-    print(dict_sant)
+        # создаем словарь Сант: ключ-игрок, значение-Санта
+        dict_sant = {}
+        for i in range(len(list_user_id)):
+            if i < len(list_user_id)-1:
+                print(list_user_id[i])
+                dict_sant.update({list_user_id[i]: list_user_id[i+1]})
+            else:
+                dict_sant.update({list_user_id[i]: list_user_id[0]})
+        print(dict_sant)
 
-    # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
-    # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
-    # curs.execute('SELECT us.first_name, us.last_name, rel.wish FROM Users as us '
-    #              'LEFT JOIN Relations_user_group as rel '
-    #              'ON us.id = rel.user_id WHERE us.id=:us.id, {'us.id': a})
-    #
-    # gamers = curs.fetchall()
-    # print(gamers)
+        # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
+        # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
+
+
+
+        for key in dict_sant:
+            print(key)
+            curs.execute('SELECT us.first_name, us.last_name, us.username, rel.wish FROM Users as us '
+                         'LEFT JOIN Relations_user_group as rel '
+                         'ON us.id = rel.user_id '
+                         'WHERE user_id=:user_id AND group_id=:group_id', {'user_id': key, 'group_id': group_id[0][0]})
+            info = curs.fetchall()
+            santa_id = dict_sant[key]
+            print(f'для санты: id={santa_id} --- игрок: {info}')
+            print(f'santa_id: {santa_id}')
+
+            # узнаем tg_id Санты по значению ключа
+            curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': santa_id})
+            santa_tg_id = curs.fetchall()
+            print(f'santa_tg_id: {santa_tg_id[0][0]}')
+
+            # отправляем информацию Санте!
+            bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️️\n\n'
+                                             f'Привет, солнышко. Вот и розыгрыш в группe "{message.text}"! 🎉\n'
+                                             f'Ты будешь Тайным Сантой для человека по имени '
+                                             f'{info[0][0]} {info[0][1]}! \n'
+                                             f'Его ник в телеграме: @{info[0][2]}.\n'
+                                             f'Его послание для тебя: {info[0][3]}.\n\n'
+                                             f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
+                                             f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
+                                             f'(Тексты мы, конечно, поправим...)\n\n'
+                                             f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
 
     conn.commit()
-    curs.close()
+    conn.close()
 
     logmess(message)
 
