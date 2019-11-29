@@ -379,91 +379,101 @@ def send_welcome(message):
 
 
 def run_game(message):
-    bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа "{message.text}"!', reply_markup=ReplyKeyboardRemove())
-    # логика розыгрыша!
-    conn = sqlite3.connect("santa.db")
-    curs = conn.cursor()
+    # проверка типа (должен быть только текст)
+    if message.content_type == 'text':
+        bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа "{message.text}"!',
+                         reply_markup=ReplyKeyboardRemove())
+        # логика розыгрыша!
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
 
-    # узнаём id выбранной группы
-    curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
-    group_id = curs.fetchall()
+        # узнаём id выбранной группы
+        curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
+        group_id = curs.fetchall()
 
-    if len(group_id) == 0:
-        bot.send_message(message.chat.id, text='Упс. Такой группы то нет.')
+        if len(group_id) == 0:
+            bot.send_message(message.chat.id, text='Упс. Такой группы то нет.')
+        else:
+            # выбираем id всех участников этой группы, сохраняем в список - ПАДАЕТ, ЕСЛИ ГРУПП НЕТ
+            curs.execute(
+                'SELECT user_id FROM Relations_user_group WHERE group_id=:group_id AND participation=:participation',
+                {'group_id': group_id[0][0], 'participation': 1})
+            all_participants = curs.fetchall()
+            print('+++++++++++++++')
+            print(all_participants)
+            # формируем список из id участников
+            list_user_id = []
+            for i in range(len(all_participants)):
+                list_user_id.append(all_participants[i][0])
+
+            print(f'list: {list_user_id}')
+            # перемешиваем участников
+            shuffle(list_user_id)
+            print(f'shuf_list: {list_user_id}')
+
+            # логируем групу участников розыгрыша в файл
+            # (или делать это после розыгрыша?)
+            gr = group_id[0][0]
+            now = datetime.now()
+
+            # складываем файлы логов розыгрыша в папку
+            with open(os.path.join(os.path.dirname(__file__), 'logs', f'logs_{gr}.txt'), 'w') as log_list:
+                log_list.write(f'group_id: {str(gr)}\n')
+                log_list.write(f'run_game: {now}\n')
+                log_list.write('list_game: ')
+                for i in list_user_id:
+                    log_list.write(f'{str(i)}, ')
+
+            # создаем словарь Сант: ключ-игрок, значение-Санта
+            dict_sant = {}
+            for i in range(len(list_user_id)):
+                if i < len(list_user_id) - 1:
+                    dict_sant.update({list_user_id[i]: list_user_id[i + 1]})
+                else:
+                    dict_sant.update({list_user_id[i]: list_user_id[0]})
+            print(dict_sant)
+
+            # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
+            # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
+
+            for key in dict_sant:
+                curs.execute('SELECT us.first_name, us.last_name, us.username, rel.wish FROM Users as us '
+                             'LEFT JOIN Relations_user_group as rel '
+                             'ON us.id = rel.user_id '
+                             'WHERE user_id=:user_id AND group_id=:group_id',
+                             {'user_id': key, 'group_id': group_id[0][0]})
+                info = curs.fetchall()
+                santa_id = dict_sant[key]
+                print(f'для санты: id={santa_id} --- игрок: {info}')
+                print(f'santa_id: {santa_id}')
+
+                # узнаем tg_id Санты по значению ключа
+                curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': santa_id})
+                santa_tg_id = curs.fetchall()
+                print(f'santa_tg_id: {santa_tg_id[0][0]}')
+
+                # ОБРАБОТАТЬ NONE - ВСЕ В ПЕРЕМЕННЫЕ ИМЯФАМ И ПОСЛАНИЯ
+                # отправляем информацию Санте!
+                bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️️\n\n'
+                                                         f'Привет, солнышко. Вот и розыгрыш в группe "{message.text}"! 🎉\n'
+                                                         f'Ты будешь Тайным Сантой для человека по имени '
+                                                         f'{info[0][0]} {info[0][1]}! \n'
+                                                         f'Его ник в телеграме: @{info[0][2]}.\n'
+                                                         f'Его послание для тебя: {info[0][3]}.\n\n'
+                                                         f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
+                                                         f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
+                                                         f'(Тексты мы, конечно, поправим...)\n\n'
+                                                         f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
+
+                # меняем статус розыгрыша raffle на 1 !
+                curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
+                             {'raffle': 1, 'id': group_id[0][0]})
+
+        conn.commit()
+        conn.close()
+
     else:
-        # выбираем id всех участников этой группы, сохраняем в список - ПАДАЕТ, ЕСЛИ ГРУПП НЕТ
-        curs.execute('SELECT user_id FROM Relations_user_group WHERE group_id=:group_id AND participation=:participation',
-                     {'group_id': group_id[0][0], 'participation': 1})
-        all_participants = curs.fetchall()
-        print('+++++++++++++++')
-        print(all_participants)
-        # формируем список из id участников
-        list_user_id = []
-        for i in range(len(all_participants)):
-            list_user_id.append(all_participants[i][0])
-
-        print(f'list: {list_user_id}')
-        # перемешиваем участников
-        shuffle(list_user_id)
-        print(f'shuf_list: {list_user_id}')
-
-        # логируем групу участников розыгрыша в файл
-        # (или делать это после розыгрыша?)
-        gr = group_id[0][0]
-        now = datetime.now()
-
-        # складываем файлы логов розыгрыша в папку
-        with open(os.path.join(os.path.dirname(__file__),'logs',f'logs_{gr}.txt'), 'w') as log_list:
-            log_list.write(f'group_id: {str(gr)}\n')
-            log_list.write(f'run_game: {now}\n')
-            log_list.write('list_game: ')
-            for i in list_user_id:
-                log_list.write(f'{str(i)}, ')
-
-        # создаем словарь Сант: ключ-игрок, значение-Санта
-        dict_sant = {}
-        for i in range(len(list_user_id)):
-            if i < len(list_user_id)-1:
-                print(list_user_id[i])
-                dict_sant.update({list_user_id[i]: list_user_id[i+1]})
-            else:
-                dict_sant.update({list_user_id[i]: list_user_id[0]})
-        print(dict_sant)
-
-        # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
-        # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
-
-        for key in dict_sant:
-            print(key)
-            curs.execute('SELECT us.first_name, us.last_name, us.username, rel.wish FROM Users as us '
-                         'LEFT JOIN Relations_user_group as rel '
-                         'ON us.id = rel.user_id '
-                         'WHERE user_id=:user_id AND group_id=:group_id', {'user_id': key, 'group_id': group_id[0][0]})
-            info = curs.fetchall()
-            santa_id = dict_sant[key]
-            print(f'для санты: id={santa_id} --- игрок: {info}')
-            print(f'santa_id: {santa_id}')
-
-            # узнаем tg_id Санты по значению ключа
-            curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': santa_id})
-            santa_tg_id = curs.fetchall()
-            print(f'santa_tg_id: {santa_tg_id[0][0]}')
-
-            # ОБРАБОТАТЬ NONE - ВСЕ В ПЕРЕМЕННЫЕ ИМЯФАМ И ПОСЛАНИЯ
-            # отправляем информацию Санте!
-            bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️️\n\n'
-                                             f'Привет, солнышко. Вот и розыгрыш в группe "{message.text}"! 🎉\n'
-                                             f'Ты будешь Тайным Сантой для человека по имени '
-                                             f'{info[0][0]} {info[0][1]}! \n'
-                                             f'Его ник в телеграме: @{info[0][2]}.\n'
-                                             f'Его послание для тебя: {info[0][3]}.\n\n'
-                                             f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
-                                             f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
-                                             f'(Тексты мы, конечно, поправим...)\n\n'
-                                             f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
-
-    conn.commit()
-    conn.close()
+        bot.send_message(message.chat.id, text='Санта не согласен!')
 
     logmess(message)
 
