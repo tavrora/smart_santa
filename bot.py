@@ -7,6 +7,7 @@ import os
 import telebot
 import sqlite3
 import secrets
+import datetime
 import re
 from idlelib import query
 from random import shuffle
@@ -104,7 +105,8 @@ def send_welcome(message):
                 conn.close()
                 
 
-                bot.send_message(message.chat.id, text=f'Привет! Я Санта-бот и ты пришел ко мне по приглашению в группу "{group_title}"! '
+                bot.send_message(message.chat.id, text=f'Привет! Я Санта-бот и ты пришел ко мне по приглашению '
+                                                       f'в группу "{group_title[0][0]}"! '
                                                        'Для твоего подарка уже есть место под ёлкой!')
 
                 # клавиатура
@@ -134,7 +136,7 @@ def callback_worker(call):
         get_group_name(call.message) # вызываем функцию получения названия группы
         # код сохранения данных, или их обработки
     elif call.data == 'no_group':
-        bot.send_message(call.message.chat.id, text='ок. /newgroup если передумаешь или присоединяйся '
+        bot.send_message(call.message.chat.id, text='Ну ок. /newgroup если передумаешь или присоединяйся '
                                                     'к своей группе по ссылке от ведущего')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
     elif call.data == 'yes_part':
@@ -174,33 +176,41 @@ def callback_worker(call):
 
 
 def enter_wish(message): # получаем пожелание к подарку
-    bot.send_message(message.chat.id, text='Жду пожелания.')
+    # bot.send_message(message.chat.id, text='Жду пожелания.')
     bot.register_next_step_handler(message, get_wish)
     logmess(message)
+
 
 def get_wish(message):
     print(f'пожелание игрока: {message.text}')
 
-    if message.text[0] != '/':
-        # работа с БД
-        conn = sqlite3.connect("santa.db")
-        curs = conn.cursor()
-        # вспоминаем id пользователя в БД
-        curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
-        current_user = curs.fetchall()
-        # вспоминаем id группы, в которую пришёл пользователь
-        curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': current_user[0][1]})
-        group_id = curs.fetchall()
-        # заносим/меняем пожелание в таблице связей
-        curs.execute('UPDATE Relations_user_group SET wish=:wish '
-                     'WHERE user_id=:user_id AND group_id=:group_id',
-                     {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
-        conn.commit()
-        conn.close()
-        bot.send_message(message.chat.id, text='Класс! Санта учтёт твоё пожелание (или нет). \n'
-                                               '(В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
+    # проверка типа (должен быть только текст)
+    if message.content_type == 'text':
+        if message.text[0] != '/':
+            # работа с БД
+            conn = sqlite3.connect("santa.db")
+            curs = conn.cursor()
+            # вспоминаем id пользователя в БД
+            curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+            current_user = curs.fetchall()
+            # вспоминаем id группы, в которую пришёл пользователь
+            curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': current_user[0][1]})
+            group_id = curs.fetchall()
+            # заносим/меняем пожелание в таблице связей
+            curs.execute('UPDATE Relations_user_group SET wish=:wish '
+                         'WHERE user_id=:user_id AND group_id=:group_id',
+                         {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
+            conn.commit()
+            conn.close()
+            bot.send_message(message.chat.id, text='Класс! Санта учтёт твоё пожелание (или нет). \n'
+                                                   'Теперь жди розыгрыш! (подумать над датой)'
+                                                   '(В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
+        else:
+            bot.send_message(message.chat.id,
+                             text='Это не похоже на пожелание. (В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
     else:
-        bot.send_message(message.chat.id, text='Это не похоже на пожелание. (В теории ты сможешь изменять пожелание до дня розыгрыша командой /enterwish)')
+        bot.send_message(message.chat.id, text='Санта не согласен!')
+
     logmess(message)
 
 
@@ -212,39 +222,47 @@ def get_group_name(message): # получаем название группы
 
 # проверяем валидность названия
 def check_group_name(message):
-    print(message.text[0])
-    print(f'название: {message.text}')
-    # проверяем, что введено название, а не команда (и оно уникально)
-    if message.text[0] == '/':
-        bot.send_message(message.chat.id, text='Ой! Команда? Это не подходит для названия группы. '
-                                               'Перейди по /newgroup, чтобы создать новую группу в будущем. '
-                                               'Название должно быть уникально в рамках твоих активных групп.')
-    else:
-        # если создающего пользователя нет в БД, то проверку на уникальность делать не надо
-        conn = sqlite3.connect("santa.db")
-        curs = conn.cursor()
-        curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
-        user_id = curs.fetchall()
-        print(user_id)
-        # если пользователь есть в БД
-        if len(user_id) != 0:
-            curs.execute('SELECT * FROM Groups WHERE leader_id=:leader_id and title=:title and raffle=:raffle',
-                         {'leader_id': user_id[0][0], 'title': message.text, 'raffle': 0})
-            group_exists = curs.fetchall()
-            # проверка уникальности названия (разный регистр - разное название)
-            if len(group_exists) != 0:
-                bot.send_message(message.chat.id, text='Проказник! Это не подходит для названия группы. '
-                                                       'Оно должно быть уникально в рамках твоих активных групп. '
-                                                       'Перейди по /newgroup, чтобы попробовать ещё раз.')
-            else:
+
+    # проверка типа (должен быть только текст)
+    if message.content_type == 'text':
+        print(message.content_type)
+        print(message.text[0])
+        print(f'название: {message.text}')
+        # проверяем, что введено название, а не команда (и оно уникально)
+        if message.text[0] == '/':
+            bot.send_message(message.chat.id, text='Ой! Команда? Это не подходит для названия группы. '
+                                                   'Перейди по /newgroup, чтобы создать новую группу в будущем. '
+                                                   'Название должно быть уникально в рамках твоих активных групп.')
+        else:
+            # если создающего пользователя нет в БД, то проверку на уникальность делать не надо
+            conn = sqlite3.connect("santa.db")
+            curs = conn.cursor()
+            curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+            user_id = curs.fetchall()
+            print(user_id)
+            # если пользователь есть в БД
+            if len(user_id) != 0:
+                curs.execute('SELECT * FROM Groups WHERE leader_id=:leader_id and title=:title and raffle=:raffle',
+                             {'leader_id': user_id[0][0], 'title': message.text, 'raffle': 0})
+                group_exists = curs.fetchall()
+                # закрываем соединение
                 conn.commit()
                 conn.close()
-                link_generation(message) # вызываем генерацию
-        # если пользователя нет в БД
-        else:
-            conn.commit()
-            conn.close()
-            link_generation(message) # вызываем генерацию
+                # проверяем уникальность названия (разный регистр - разное название)
+                if len(group_exists) != 0:
+                    bot.send_message(message.chat.id, text='Проказник! Это не подходит для названия группы. '
+                                                           'Оно должно быть уникально в рамках твоих активных групп. '
+                                                           'Перейди по /newgroup, чтобы попробовать ещё раз.')
+                else:
+                    link_generation(message)  # вызываем генерацию
+            # если пользователя нет в БД
+            else:
+                # закрываем соединение
+                conn.commit()
+                conn.close()
+                link_generation(message)  # вызываем генерацию
+    else:
+        bot.send_message(message.chat.id, text='Санта не согласен!')
 
     logmess(message)
 
@@ -252,7 +270,6 @@ def check_group_name(message):
 # генерация ссылки и занесение в БД
 def link_generation(message):
     print(f'message.text: {message.text}')
-    bot.send_message(message.chat.id, text=f'Введено название: "{message.text}"')
 
     # генерация ссылки
     link_part = secrets.token_urlsafe(12)
@@ -319,10 +336,6 @@ def send_welcome(message):
     if message.chat.type == 'private':
         bot.send_message(message.chat.id, text='/start - запустить бота 🎄\n'
                                                '/help - получить помощь 🎄\n'
-                                               '/newgroup - создать новую группу для розыгрыша 🎄 (*)\n'
-                                               '/participation - принять участие в розыгрыше 🎄 (*)\n'
-                                               '/leavegroup - выйти из розыгрыша 🎄 (*)\n'
-                                               '/enterwish - ввести или редактировать пожелание 🎄 (*)\n'
                                                '/rungame - запустить розыгрыш (для ведущего) 🎄 (*)')
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
@@ -341,7 +354,8 @@ def send_welcome(message):
         list_active_groups = curs.fetchall()
         print(list_active_groups)
         if len(list_active_groups) == 0:
-            bot.send_message(message.chat.id, text='Оу, кажется, у тебя нет активных групп для розыгрыша!')
+            bot.send_message(message.chat.id, text='Оу, кажется, у тебя нет активных групп для розыгрыша! '
+                                                   'Эта команда доступна только для ведущего.')
         else:
             keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
             # заносим названия активных групп в кнопки
@@ -393,6 +407,19 @@ def run_game(message):
         shuffle(list_user_id)
         print(f'shuf_list: {list_user_id}')
 
+        # логируем групу участников розыгрыша в файл
+        # (или делать это после розыгрыша?)
+        gr = group_id[0][0]
+        now = datetime.now()
+
+        # складываем файлы логов розыгрыша в папку
+        with open(os.path.join(os.path.dirname(__file__),'logs',f'logs_{gr}.txt'), 'w') as log_list:
+            log_list.write(f'group_id: {str(gr)}\n')
+            log_list.write(f'run_game: {now}\n')
+            log_list.write('list_game: ')
+            for i in list_user_id:
+                log_list.write(f'{str(i)}, ')
+
         # создаем словарь Сант: ключ-игрок, значение-Санта
         dict_sant = {}
         for i in range(len(list_user_id)):
@@ -405,8 +432,6 @@ def run_game(message):
 
         # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
         # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
-
-
 
         for key in dict_sant:
             print(key)
@@ -424,6 +449,7 @@ def run_game(message):
             santa_tg_id = curs.fetchall()
             print(f'santa_tg_id: {santa_tg_id[0][0]}')
 
+            # ОБРАБОТАТЬ NONE - ВСЕ В ПЕРЕМЕННЫЕ ИМЯФАМ И ПОСЛАНИЯ
             # отправляем информацию Санте!
             bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️️\n\n'
                                              f'Привет, солнышко. Вот и розыгрыш в группe "{message.text}"! 🎉\n'
@@ -440,6 +466,54 @@ def run_game(message):
     conn.close()
 
     logmess(message)
+
+
+# обработка разных типов сообщений
+@bot.message_handler(content_types=['text'])
+def santa_text(message):
+    bot.send_message(message.chat.id, text='Человек отправил мне текст. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['sticker'])
+def santa_sticker(message):
+    bot.send_message(message.chat.id, text='Человек меня стикерит. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['photo'])
+def santa_photo(message):
+    bot.send_message(message.chat.id, text='Человек отправил мне фото. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['document'])
+def santa_document(message):
+    bot.send_message(message.chat.id, text='Человек меня документит. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['voice'])
+def santa_voice(message):
+    bot.send_message(message.chat.id, text='Человек говорит со мной. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['audio'])
+def santa_audio(message):
+    bot.send_message(message.chat.id, text='Человек отправил мне аудио. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['video', 'video_note'])
+def santa_video(message):
+    bot.send_message(message.chat.id, text='Человек отправил мне видео. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['location'])
+def santa_location(message):
+    bot.send_message(message.chat.id, text='Человек отправил мне локацию. Ок.')
+    logmess(message)
+
+@bot.message_handler(content_types=['contact'])
+def santa_contact(message):
+    bot.send_message(message.chat.id, text='Человек отправил мне контакт. Ок.')
+    logmess(message)
+
 
 
 # # бот дразнится
