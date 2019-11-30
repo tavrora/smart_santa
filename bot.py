@@ -2,13 +2,16 @@
 
 # import config
 import os
-
+from urllib import response
 
 import telebot
 import sqlite3
 import secrets
 import datetime
+import requests
 import re
+import request
+import urllib.request
 from idlelib import query
 from random import shuffle
 from datetime import datetime
@@ -23,6 +26,25 @@ apihelper.proxy = {'https': socks5}
 bot = telebot.TeleBot(token)
 print('сервер работает...')
 user = bot.get_me()
+
+# bot.send_message(299999052, text='Сообщение для Танюши.')
+# response = urllib.request.urlopen("https://t.me/tavrora")
+# print(response.getcode())
+# def get_updates_json(request):
+#     response = requests.get(request + 'getUpdates')
+#     return response.json()
+# get_updates_json()
+
+# бот должен проверять доступность юзера перед отправкой, чтобы не падать
+# try:
+#   bot.send_message(299999052, text='Сообщение для Танюши.')
+# except telebot.apihelper.ApiException:
+#   print('ветка исключений')
+  # отправить ведущему сообщения о заблоченных
+  # Петя @petya не получил посление с именем Галя и пожеланием "Хочу ель" :(
+  # Сообщи это Пете устно и проследи, чтобы Галя не осталась без подарка!
+
+
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -364,6 +386,9 @@ def send_welcome(message):
                 button = types.KeyboardButton(text=title)
                 keyboard.add(button)
 
+            button_cancel = types.KeyboardButton(text='Отмена')
+            keyboard.add(button_cancel)
+
             bot.send_message(message.chat.id,
                              "Выбери группу, в которой хочешь запустить розыгрыш! (Действие окончательно и необратимо.)",
                              reply_markup=keyboard)
@@ -379,7 +404,13 @@ def send_welcome(message):
 
 
 def run_game(message):
-    # проверка типа (должен быть только текст)
+
+    # обработка Отмены (убить клавиатуру)
+    if message.content_type == 'text' and message.text == 'Отмена':
+        bot.send_message(message.chat.id, text='Окей, отмена.', reply_markup=ReplyKeyboardRemove())
+        return
+
+    # проверка типа (должен быть только текст)  and message.text != 'Отмена'
     if message.content_type == 'text':
         bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа "{message.text}"!',
                          reply_markup=ReplyKeyboardRemove())
@@ -387,7 +418,11 @@ def run_game(message):
         conn = sqlite3.connect("santa.db")
         curs = conn.cursor()
 
-        # узнаём id выбранной группы
+        # узнаём tg_id ведущего для логов и для отправки
+        # message.chat.id ? ведь только ведущий может "дойти" до этого кода?
+        print(f'ВЕДУЩИЙ - {message.chat.id}')
+
+        # узнаём id выбранной группы (можно взять и БД-шный id для логов)
         curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
         group_id = curs.fetchall()
 
@@ -411,7 +446,6 @@ def run_game(message):
             shuffle(list_user_id)
             print(f'shuf_list: {list_user_id}')
 
-
             # логируем групу участников розыгрыша в файл
             # (или делать это после розыгрыша?)
             gr = group_id[0][0]
@@ -421,6 +455,7 @@ def run_game(message):
             with open(os.path.join(os.path.dirname(__file__), 'logs', f'logs_{gr}.txt'), 'w') as log_list:
                 log_list.write(f'group_id: {str(gr)}\n')
                 log_list.write(f'run_game: {now}\n')
+                log_list.write(f'leader tg_id: {message.chat.id}\n')
                 log_list.write('list_game: ')
                 for i in list_user_id:
                     log_list.write(f'{str(i)}, ')
@@ -462,25 +497,45 @@ def run_game(message):
                 elif info[0][1] == None:
                     player_name = info[0][0]
                 else:
-                    player_name = info[0][0]+info[0][1]
+                    player_name = f'{info[0][0]} {info[0][1]}'
 
                 if info[0][3] != None:
-                    player_wish = {info[0][3]}
+                    player_wish = info[0][3]
                 else:
                     player_wish = 'не написано'
 
+                try:
+                    # отправляем информацию Санте!
+                    bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️️\n\n'
+                                                             f'Привет, солнышко. Вот и розыгрыш в группe "{message.text}"! 🎉\n'
+                                                             f'Ты будешь Тайным Сантой для человека по имени '
+                                                             f'{player_name}! \n'
+                                                             f'Его ник в телеграме: @{info[0][2]}.\n'
+                                                             f'Его послание для тебя: {player_wish}.\n\n'
+                                                             f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
+                                                             f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
+                                                             f'(Тексты мы, конечно, поправим...)\n\n'
+                                                             f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
+                except telebot.apihelper.ApiException:
+                    print('ветка исключений......')
 
-                # отправляем информацию Санте!
-                bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️️\n\n'
-                                                         f'Привет, солнышко. Вот и розыгрыш в группe "{message.text}"! 🎉\n'
-                                                         f'Ты будешь Тайным Сантой для человека по имени '
-                                                         f'{player_name}! \n'
-                                                         f'Его ник в телеграме: @{info[0][2]}.\n'
-                                                         f'Его послание для тебя: {player_wish}.\n\n'
-                                                         f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
-                                                         f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
-                                                         f'(Тексты мы, конечно, поправим...)\n\n'
-                                                         f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
+                    # узнаем данные Пропавшего Тайного Санты по значению его tg_id
+                    curs.execute('SELECT first_name, last_name, username FROM Users WHERE tg_id=:tg_id', {'tg_id': santa_tg_id[0][0]})
+                    missing_santa = curs.fetchall()
+                    print(f'missing_santa: {missing_santa}')
+
+                    if missing_santa[0][0] == None:
+                        missing_santa_name = missing_santa[0][1]
+                    elif missing_santa[0][1] == None:
+                        missing_santa_name = missing_santa[0][0]
+                    else:
+                        missing_santa_name = f'{missing_santa[0][0]} {missing_santa[0][1]}'
+
+                    bot.send_message(message.chat.id, text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
+                                                           f'Игрок {missing_santa_name} - @{missing_santa[0][2]} '
+                                                           f'не получил послaние игрока {player_name} - @{info[0][2]} '
+                                                           f'c пожеланием "{player_wish}" 🥺 '
+                                                           f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились!')
 
                 # меняем статус розыгрыша raffle на 1 !
                 curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
@@ -490,16 +545,19 @@ def run_game(message):
         conn.close()
 
     else:
-        bot.send_message(message.chat.id, text='Санта не согласен!')
+        # убить клавиатуру
+        bot.send_message(message.chat.id, text='Санта не согласен!', reply_markup=ReplyKeyboardRemove())
 
     logmess(message)
 
 
 # обработка разных типов сообщений
-@bot.message_handler(content_types=['text'])
-def santa_text(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне текст. Ок.')
-    logmess(message)
+
+# текст обрабатывается в ручном вводе названия группы
+# @bot.message_handler(content_types=['text'])
+# def santa_text(message):
+#     bot.send_message(message.chat.id, text='Человек отправил мне текст. Ок.')
+#     logmess(message)
 
 @bot.message_handler(content_types=['sticker'])
 def santa_sticker(message):
