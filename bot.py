@@ -35,13 +35,13 @@ def send_welcome(message):
         if len(start_param) == 1:
             print('нет параметра запуска')
             bot.send_message(message.chat.id, text='Привет! Я Санта-бот, помогу провести новогодний '
-                                                   'розыгрыш подарков в вашей компании!')
+                                                   'розыгрыш подарков в вашей компании! 🎄')
             keyboard = types.InlineKeyboardMarkup(row_width=2)  # наша клавиатура шириной в 2 кнопи в ряду
             key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes_group')
             key_no = types.InlineKeyboardButton(text='Нет', callback_data='no_group')
             keyboard.add(key_yes, key_no)  # добавляем кнопки в клавиатуру в один ряд
             # keyboard.add(key_no) # добавлять по одной кнопке в ряд
-            question = 'Хочешь создать новую группу для розыгрыша?'
+            question = 'Хочешь создать новую группу для розыгрыша? 🎄'
             bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
             # bot.register_next_step_handler(message, new_group)
         else:
@@ -109,9 +109,9 @@ def send_welcome(message):
                 conn.close()
                 
 
-                bot.send_message(message.chat.id, text=f'Привет! Я Санта-бот и ты пришел ко мне по приглашению '
-                                                       f'в группу «{group_title[0][0]}»! '
-                                                       'Для твоего подарка уже есть место под ёлкой!')
+                bot.send_message(message.chat.id, text=f'Привет! 🎄 Я Санта-бот и ты пришел ко мне по приглашению '
+                                                       f'в группу «{group_title[0][0]}»! 🎄 '
+                                                       'Для твоего подарка уже есть место под ёлкой! 🎄')
 
                 # клавиатура
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
@@ -177,9 +177,9 @@ def callback_group_part(call):
                                                                        'user_id': current_user[0][0], 'group_id': group_id[0][0]})
         conn.commit()
         conn.close()
-        bot.send_message(call.message.chat.id, text='Введи пожелание к подарку или просто послание для своего Санты! 🎁 '
+        bot.send_message(call.message.chat.id, text='🎁 Введи пожелание к подарку или просто послание для своего Санты! '
                                                     'Если хочешь сюрприз - сообщи об этом! '
-                                                    '(Пока ты не можешь отказаться от этого шага.)')
+                                                    '(Чтобы пропустить шаг - пришли стикер...) 🎁')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
         enter_wish(call.message) # вызываем функцию получения пожелания от игрока
 
@@ -213,11 +213,10 @@ def enter_wish(message): # получаем пожелание к подарку
 
 
 def get_wish(message):
-    print(f'пожелание игрока: {message.text}')
-    print(f'длина пожелания: {len(message.text)}')
-
     # проверка типа (должен быть только текст)
     if message.content_type == 'text':
+        print(f'пожелание игрока: {message.text}')
+        print(f'длина пожелания: {len(message.text)}')
         # ограничение длины пожелания
         if len(message.text) <= 1000:
             if message.text[0] != '/':
@@ -236,20 +235,17 @@ def get_wish(message):
                              {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
                 conn.commit()
                 conn.close()
-                bot.send_message(message.chat.id, text='Класс! Санта учтёт твоё пожелание (или нет). \n'
-                                                       'Теперь жди розыгрыш! (подумать над датой)'
-                                                       'Кстати, ты можешь изменить своё пожелание до проведения розыгрыша. '
-                                                       'Для этого перейди по ссылке-приглашению вновь '
-                                                       'и введи новое пожелание!')
+                bot.send_message(message.chat.id, text='Класс! 🎄 Санта учтёт твоё пожелание (или нет). \n'
+                                                       'Теперь жди розыгрыш! (подумать над датой) 🎄'
+                                                       'Кстати, ты можешь изменить своё пожелание до проведения розыгрыша'
+                                                       'командой /enterwish! 🎄')
             else:
                 bot.send_message(message.chat.id, text='Это не похоже на пожелание. '
-                                                       'Ты можешь изменить его до проведения розыгрыша. '
-                                                       'Для этого перейди по ссылке-приглашению вновь '
-                                                       'и введи новое пожелание!')
+                                                       'Ты можешь попробовать снова с помощью команды /enterwish! 🎁')
         else:
             bot.send_message(message.chat.id, text='Пожелание слишком длинное. Похоже, ты слишком многого хочешь? :) '
                                                    'Ограничь описание своих аппетитов 1000 символами :) '
-                                                   'Для ввода нового пожелания перейди по ссылке-приглашению вновь!')
+                                                   'Для ввода нового пожелания используй /enterwish 🎁!')
     else:
         bot.send_message(message.chat.id, text='Санта не согласен!')
 
@@ -376,8 +372,7 @@ def link_generation(message):
     bot.send_message(message.chat.id, text=f'🎄 Годится-ягодица! Группа «{message.text}» создана!\n\n'
                                            f'🎄 Вот ссылка-приглашение на участие для твоих друзей: '
                                            f'{link_full}.\n\n'
-                                           f'🎄 Чтобы ввести своё пожелание к подарку перейди по ней.\n\n'
-                                    
+                                           f'🎄 Ты можешь ввести своё пожелание к подарку с помощью команды /enterwish.\n\n'
                                            f'🎄 После регистрации всех желающих ты можешь запустить розыгрыш '
                                            f'командой /rungame.\n\n')
     conn.commit()
@@ -388,9 +383,21 @@ def link_generation(message):
 @bot.message_handler(commands=['help'])
 def give_help(message):
     if message.chat.type == 'private':
-        bot.send_message(message.chat.id, text='/start - запустить бота 🎄\n'
+        bot.send_message(message.chat.id, text='/start - запустить бота и создать новую группу 🎄\n'
                                                '/help - получить помощь 🎄\n'
-                                               '/rungame - запустить розыгрыш (для ведущего) 🎄 (*)')
+                                               '/enterwish - ввести новое пожелание к подарку 🎄\n'
+                                               '/rungame - запустить розыгрыш (для ведущего) 🎄')
+    else:
+        bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
+    logmess(message)
+
+
+@bot.message_handler(commands=['enterwish'])
+def enter_new_wish(message):
+    if message.chat.type == 'private':
+        # НУЖНА ПРОВЕРКА, ЧТО ГРУППЫ ЕСТЬ
+        bot.send_message(message.chat.id, text='Санта ждёт твоего пожелания! 🎁')
+        bot.register_next_step_handler(message, get_wish)
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
     logmess(message)
@@ -443,13 +450,12 @@ def confirm_run_game(message):
         bot.send_message(message.chat.id, text='Окей, отмена.', reply_markup=ReplyKeyboardRemove())
         return
 
-    # проверка типа (должен быть только текст)  and message.text != 'Отмена'
-    if message.content_type == 'text':
+    if message.content_type == 'text' and message.text[0] != '/':
         # сразу избавляемся от клавиатуры
         # bot.send_message(message.chat.id, text='Скрыть клавиатуру без текста нельзя',
         #                  reply_markup=ReplyKeyboardRemove())
 
-        # логика розыгрыша!
+        # логика розыгрыша
         conn = sqlite3.connect("santa.db")
         curs = conn.cursor()
 
@@ -459,17 +465,22 @@ def confirm_run_game(message):
 
         # узнаём id выбранной группы (можно взять и БД-шный id для логов)
         # будем его передвать в обработчик кнопок и в функцию запуска
-        curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
+        # НУЖНО ПРОВЕРИТЬ, ЧТО ВРУЧНУЮ НЕ ВВЕДЕНА ГРУППА, В КОТОРОЙ УЖЕ БЫЛ РОЗЫГРЫШ
+        curs.execute('SELECT id FROM Groups WHERE title=:title '
+                     'AND raffle=:raffle', {'title': message.text, 'raffle': 0})
         group_id = curs.fetchall()
 
         if len(group_id) == 0:
             # убить клавиатуру
-            bot.send_message(message.chat.id, text='Упс. Такой группы то нет.', reply_markup=ReplyKeyboardRemove())
+            bot.send_message(message.chat.id, text='Упс. Среди активных групп такой группы нет. '
+                                                   'Убедись в правильности названия и выбери '
+                                                   'из предлагаемых вариантов.', reply_markup=ReplyKeyboardRemove())
         else:
-            # cкрываем клваиатуру здесь (это не поздно?)
+            # cкрываем клавиатуру здесь (это не поздно?)
             # ЗАПРАШИВАТЬ ПОДТВЕРЖДЕНИЕ ЗАПУСКА В ВЕРНО ВЫБРАННОЙ ГРУППЕ
-            bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа «{message.text}»! ',
+            bot.send_message(message.chat.id, text=f'Для розыгрыша выбрана группа «{message.text}»! 🎄',
                              reply_markup=ReplyKeyboardRemove())
+
             # клавиатура
             keyboard_confirm = types.InlineKeyboardMarkup(row_width=2)
             key_confirm_yes = types.InlineKeyboardButton(text='Пуск!', callback_data=f'yes_confirm:{group_id[0][0]}')
@@ -478,123 +489,13 @@ def confirm_run_game(message):
             question = 'Требуется подтверждение запуска: 3, 2, 1...'
             bot.send_message(message.from_user.id, text=question, reply_markup=keyboard_confirm)
 
-        #     # ВЫОЛНЕНИЕ ЛОГИКИ РОЗЫГРЫША ТОЛЬКО В ПОСЛЕ ПОДТВЕРЖДЕНИЯ
-        #     # выбираем id всех участников этой группы, сохраняем в список, ПАДАЛО ЕСЛИ ГРУПП НЕТ
-        #     curs.execute(
-        #         'SELECT user_id FROM Relations_user_group WHERE group_id=:group_id AND participation=:participation',
-        #         {'group_id': group_id[0][0], 'participation': 1})
-        #     all_participants = curs.fetchall()
-        #     print('+++++++++++++++')
-        #     print(all_participants)
-        #     # формируем список из id участников
-        #     list_user_id = []
-        #     for i in range(len(all_participants)):
-        #         list_user_id.append(all_participants[i][0])
-        #
-        #     print(f'list: {list_user_id}')
-        #     # перемешиваем участников
-        #     shuffle(list_user_id)
-        #     print(f'shuf_list: {list_user_id}')
-        #
-        #     # логируем групу участников розыгрыша в файл
-        #     # (или делать это после розыгрыша?)
-        #     gr = group_id[0][0]
-        #     now = datetime.now()
-        #
-        #     # складываем файлы логов розыгрыша в папку
-        #     with open(os.path.join(os.path.dirname(__file__), 'logs', f'logs_{gr}.txt'), 'w') as log_list:
-        #         log_list.write(f'group_id: {str(gr)}\n')
-        #         log_list.write(f'run_game: {now}\n')
-        #         log_list.write(f'leader tg_id: {message.chat.id}\n')
-        #         log_list.write('list_game: ')
-        #         for i in list_user_id:
-        #             log_list.write(f'{str(i)}, ')
-        #
-        #     # создаем словарь Сант: ключ-игрок, значение-Санта
-        #     dict_sant = {}
-        #     for i in range(len(list_user_id)):
-        #         if i < len(list_user_id) - 1:
-        #             dict_sant.update({list_user_id[i]: list_user_id[i + 1]})
-        #         else:
-        #             dict_sant.update({list_user_id[i]: list_user_id[0]})
-        #     print(dict_sant)
-        #
-        #     # выбираем всю инфу игрока по ключу и отправляем ее в чат Санте по значению
-        #     # инфа: Users.first_name, Users.last_name, Relations_user_group.wish
-        #
-        #     for key in dict_sant:
-        #         curs.execute('SELECT us.first_name, us.last_name, us.username, rel.wish FROM Users as us '
-        #                      'LEFT JOIN Relations_user_group as rel '
-        #                      'ON us.id = rel.user_id '
-        #                      'WHERE user_id=:user_id AND group_id=:group_id',
-        #                      {'user_id': key, 'group_id': group_id[0][0]})
-        #         info = curs.fetchall()
-        #         santa_id = dict_sant[key]
-        #         print(f'для санты: id={santa_id} --- игрок: {info}')
-        #         print(f'santa_id: {santa_id}')
-        #
-        #         # узнаем tg_id Санты по значению ключа
-        #         curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': santa_id})
-        #         santa_tg_id = curs.fetchall()
-        #         print(f'santa_tg_id: {santa_tg_id[0][0]}')
-        #
-        #         # Обработка None в сообщении для Тайного Санты
-        #         player_name = ''
-        #         player_wish = ''
-        #
-        #         if info[0][0] == None:
-        #             player_name = info[0][1]
-        #         elif info[0][1] == None:
-        #             player_name = info[0][0]
-        #         else:
-        #             player_name = f'{info[0][0]} {info[0][1]}'
-        #
-        #         if info[0][3] != None:
-        #             player_wish = info[0][3]
-        #         else:
-        #             player_wish = 'не написано'
-        #
-        #         # бот должен проверять доступность юзера перед отправкой, чтобы не падать
-        #         try:
-        #             # отправляем информацию Санте!
-        #             bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
-        #                                                      f'Привет! Вот и розыгрыш в группe «{message.text}»! 🎉\n'
-        #                                                      f'Ты будешь Тайным Сантой для человека по имени '
-        #                                                      f'{player_name}! \n'
-        #                                                      f'Его ник в телеграме: @{info[0][2]}.\n'
-        #                                                      f'Его послание для тебя: {player_wish}.\n\n'
-        #                                                      f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
-        #                                                      f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
-        #                                                      f'(Тексты мы, конечно, поправим...)\n\n'
-        #                                                      f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
-        #         except telebot.apihelper.ApiException:
-        #             print('ветка исключений......')
-        #
-        #             # узнаем данные Пропавшего Тайного Санты по значению его tg_id
-        #             curs.execute('SELECT first_name, last_name, username FROM Users WHERE tg_id=:tg_id', {'tg_id': santa_tg_id[0][0]})
-        #             missing_santa = curs.fetchall()
-        #             print(f'missing_santa: {missing_santa}')
-        #
-        #             if missing_santa[0][0] == None:
-        #                 missing_santa_name = missing_santa[0][1]
-        #             elif missing_santa[0][1] == None:
-        #                 missing_santa_name = missing_santa[0][0]
-        #             else:
-        #                 missing_santa_name = f'{missing_santa[0][0]} {missing_santa[0][1]}'
-        #
-        #             bot.send_message(message.chat.id, text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
-        #                                                    f'Игрок {missing_santa_name} - @{missing_santa[0][2]} '
-        #                                                    f'не получил послaние игрока {player_name} - @{info[0][2]} '
-        #                                                    f'c пожеланием «{player_wish}» 🥺 '
-        #                                                    f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились!')
-        #
-        #         # меняем статус розыгрыша raffle на 1 !
-        #         curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
-        #                      {'raffle': 1, 'id': group_id[0][0]})
-        #
         conn.commit()
         conn.close()
-
+    elif message.content_type == 'text' and message.text[0] == '/':
+        bot.send_message(message.chat.id, text='Ой! Команда? Не похоже на название группы. '
+                                               'Убедись в правильности названия и выбери '
+                                               'из предлагаемых вариантов.',
+                         reply_markup=ReplyKeyboardRemove())
     else:
         # убить клавиатуру
         bot.send_message(message.chat.id, text='Санта не согласен!', reply_markup=ReplyKeyboardRemove())
@@ -603,24 +504,41 @@ def confirm_run_game(message):
 
 
 # ВЫОЛНЕНИЕ РОЗЫГРЫША ТОЛЬКО В ПОСЛЕ ПОДТВЕРЖДЕНИЯ
-def run_game(message):
+def run_game(run_group_id):
 
-    # message - это пришедший из кнопки group_id
-    print(f'данные из обработки кнопок: {message}\n')
+    # run_group_id - это пришедший из кнопки group_id
+    print(f'данные из обработки кнопок: {run_group_id}\n')
 
     conn = sqlite3.connect("santa.db")
     curs = conn.cursor()
 
     # берём id группы, leader_id и title по одному известному id группы (id, чтобы оперировать понятными названиями)
-    curs.execute('SELECT id, leader_id, title FROM Groups WHERE id=:id', {'id': message})
+    curs.execute('SELECT id, leader_id, title FROM Groups WHERE id=:id', {'id': run_group_id})
     group_data = curs.fetchall()
 
-    # как здесь вспомнить название выбранной для розыгрыша группы (title)
-    # узнаём id выбранной группы (можно взять и БД-шный id для логов)
-    # curs.execute('SELECT id FROM Groups WHERE title=:title', {'title': message.text})
-    # group_id = curs.fetchall()
-    #
-    # print(f'Здесь id выбранной для розыгрыша группы: {group_id}')
+    # опять находим tg_id ведущего по его бд_id
+    curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': group_data[0][1]})
+    leader_telegram_id = curs.fetchall()
+
+    # тут проверим, что в этой активной группе, есть участники
+    curs.execute('SELECT * FROM Relations_user_group WHERE group_id=:group_id '
+                 'AND participation=:participation',
+                 {'group_id': run_group_id, 'participation': 1})
+    participants = curs.fetchall()
+    # если участников нет, то меняем статус розыгрыша на 1 и выходим
+    if len(participants) == 0:
+
+        bot.send_message(leader_telegram_id[0][0], text=f'В данной группе нет участников. Группа закрыта. '
+                                                        f'Создать новую ты можешь командой /start!')
+
+        # меняем статус розыгрыша на 1
+        curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
+                     {'raffle': 1, 'id': run_group_id})
+        # СОХРАНЯЕМ ИЗМЕНЕНИЯ, РАЗРЫВАЕМ СОЕДИНЕНИЕ
+        conn.commit()
+        conn.close()
+        # и убираемся отсюда
+        return
 
     # выбираем id всех участников этой группы, сохраняем в список, ПАДАЕТ ЕСЛИ ГРУПП НЕТ
     curs.execute('SELECT user_id FROM Relations_user_group WHERE group_id=:group_id '
@@ -641,7 +559,7 @@ def run_game(message):
 
     # логируем групу участников розыгрыша в файл
     # (или делать это после розыгрыша?)
-    gr = message
+    gr = run_group_id
     now = datetime.now()
 
     # складываем файлы логов розыгрыша в папку
@@ -706,10 +624,9 @@ def run_game(message):
                                                      f'Ты будешь Тайным Сантой для человека по имени '
                                                      f'{player_name}! \n'
                                                      f'Его ник в телеграме: @{info[0][2]}.\n'
-                                                     f'Его послание для тебя: {player_wish}.\n\n'
-                                                     f'Ты можешь прислушаться к пожеланию по желанию 🎁\n\n'
-                                                     f'Мира, любви, счастья, ура, чао-какао, я всё, до новых встреч!\n'
-                                                     f'(Тексты мы, конечно, поправим...)\n\n'
+                                                     f'Его послание для тебя: {player_wish} 🎁\n\n'
+                                                     f'Ты можешь прислушаться к пожеланию, если хочешь.\n\n'
+                                                     f'Счастливого Нового Года и до новых встреч!\n\n'
                                                      f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
         except telebot.apihelper.ApiException:
             print('ветка исключений......')
