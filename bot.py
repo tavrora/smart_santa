@@ -96,36 +96,41 @@ def send_welcome(message):
                              {'user_id': user_id[0][0], 'group_id': group_exists[0][0]})
                 relation_exists = curs.fetchall()
                 print(f'есть связь: {relation_exists}')
-                if len(relation_exists) == 0:
-                    curs.execute('INSERT INTO Relations_user_group(user_id, group_id) '
-                                 'VALUES (:user_id, :group_id)',
-                                 {'user_id': user_id[0][0], 'group_id': group_exists[0][0]})
 
                 # узнаем название группы, в которую пришел пользователь
                 curs.execute('SELECT title FROM Groups WHERE id=:id', {'id': group_exists[0][0]})
                 group_title = curs.fetchall()
 
-                conn.commit()
-                conn.close()
-                
+                if len(relation_exists) == 0:
+                    curs.execute('INSERT INTO Relations_user_group(user_id, group_id) '
+                                 'VALUES (:user_id, :group_id)',
+                                 {'user_id': user_id[0][0], 'group_id': group_exists[0][0]})
+                    conn.commit()
+                    conn.close()
 
-                bot.send_message(message.chat.id, text=f'Привет! 🎄 Я Санта-бот и ты пришел ко мне по приглашению '
-                                                       f'в группу «{group_title[0][0]}»! 🎄 '
-                                                       'Для твоего подарка уже есть место под ёлкой! 🎄')
+                    # первое привествие игрока! (однократное)
+                    bot.send_message(message.chat.id, text=f'Привет! 🎄 Я Санта-бот и ты пришел ко мне по приглашению '
+                                                           f'в группу «{group_title[0][0]}»! 🎄 '
+                                                           'Для твоего подарка уже есть место под ёлкой! 🎄')
+                    # клавиатура
+                    keyboard = types.InlineKeyboardMarkup(row_width=2)
+                    key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes_part')
+                    key_no = types.InlineKeyboardButton(text='Нет', callback_data='no_part')
+                    keyboard.add(key_yes, key_no)
+                    question = 'Готов принять участие в розыгрыше?'
+                    bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
 
-                # клавиатура
-                keyboard = types.InlineKeyboardMarkup(row_width=2)
-                key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes_part')
-                key_no = types.InlineKeyboardButton(text='Нет', callback_data='no_part')
-                keyboard.add(key_yes, key_no)
-                question = 'Готов принять участие в розыгрыше?'
-                bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
+                # связь с группой уже есть, значит это не первый переход по ссылке
+                else:
+                    bot.send_message(message.chat.id, text=f'С возвращением в группу «{group_title[0][0]}»! 🎄')
+                    conn.commit()
+                    conn.close()
+
             elif len(group_exists) == 1 and group_exists[0][3] == 1:
                 bot.send_message(message.chat.id, text='Розыгрыш в этой группе уже завершен. '
                                                        'Для создания новой перезапусти бота командой /start.')
             else:
                 bot.send_message(message.chat.id, text='Ссылка запуска недействительна.')
-
 
     else:
         bot.send_message(message.chat.id, 'Упс. Санта-бот работает только в режиме тет-а-тет.')
@@ -237,8 +242,8 @@ def get_wish(message):
                 conn.close()
                 bot.send_message(message.chat.id, text='Класс! 🎄 Санта учтёт твоё пожелание (или нет). \n'
                                                        'Теперь жди розыгрыш! (подумать над датой) 🎄'
-                                                       'Кстати, ты можешь изменить своё пожелание до проведения розыгрыша'
-                                                       'командой /enterwish! 🎄')
+                                                       'Кстати, ты можешь изменить своё пожелание до проведения '
+                                                       'розыгрыша командой /enterwish! 🎄')
             else:
                 bot.send_message(message.chat.id, text='Это не похоже на пожелание. '
                                                        'Ты можешь попробовать снова с помощью команды /enterwish! 🎁')
@@ -395,7 +400,15 @@ def give_help(message):
 @bot.message_handler(commands=['enterwish'])
 def enter_new_wish(message):
     if message.chat.type == 'private':
-        # НУЖНА ПРОВЕРКА, ЧТО ГРУППЫ ЕСТЬ
+        # НУЖНА ПРОВЕРКА, ЧТО ПОЛЬЗОВАТЕЛЬ НАХОДИТСЯ В ЧАТЕ ПО ССЫЛКЕ
+        # ЧТОБЫ ЗНАТЬ ГРУППУ, КУДА ДОБАВЛЯТЬ ПОЖЕЛАНИЯ
+        # ЕСЛИ ТЕКУЩЕЙ ГРУППЫ НЕТ, ТО СООБЩАТЬ ОБ ЭТОМ?
+
+        # conn = sqlite3.connect("santa.db")
+        # curs = conn.cursor()
+        # curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+        # leader_id = curs.fetchall()
+
         bot.send_message(message.chat.id, text='Санта ждёт твоего пожелания! 🎁')
         bot.register_next_step_handler(message, get_wish)
     else:
