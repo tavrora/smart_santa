@@ -21,16 +21,13 @@ from telebot import (apihelper, types)
 from telebot.types import ReplyKeyboardRemove
 from settings import *
 
-# setting = importlib.import_module(os.getenv('.env'))
-# os.getenv('botusername')
-# from config import botusername
 
 apihelper.proxy = {'https': socks5}
 bot = telebot.TeleBot(token, threaded=False) # однопоточный режим
 print('сервер работает...')
 user = bot.get_me()
-# bot_username = botusername
-# print(bot_username)
+
+
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -464,9 +461,9 @@ def link_generation(message):
     # генерация ссылки
     link_part = secrets.token_urlsafe(12)
     print(f'сгенерированная часть ссылки: {link_part}')
-    link_full = 'https://t.me/shanta_bot?start=' + link_part
-    # доступ к переменной env
-    # link_full = 'https://t.me/'+ bot_username +'?start=' + link_part
+    # link_full = 'https://t.me/shanta_bot?start=' + link_part
+    print(f'bot_username: {bot_username}')
+    link_full = f"https://t.me/{bot_username}?start={link_part}"
     print(f'полная ссылка: {link_full}')
 
     # сохранение в БД
