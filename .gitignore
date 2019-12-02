@@ -2,4 +2,4 @@
 .env
 logs
 __pycache__
-
+santa.db

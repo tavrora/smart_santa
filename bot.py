@@ -181,7 +181,7 @@ def callback_group_part(call):
         get_group_name(call.message) # вызываем функцию получения названия группы
         # код сохранения данных, или их обработки
     elif data_parts[0] == 'no_group':
-        bot.send_message(call.message.chat.id, text='Ну ок. Eсли передумаешь, перезапусти бота командой /start '
+        bot.send_message(call.message.chat.id, text='Ладушки-оладушки. Eсли передумаешь, перезапусти бота командой /start '
                                                     'или присоединяйся к группе по ссылке от ведущего!')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
 
@@ -198,14 +198,14 @@ def callback_group_part(call):
         print(current_user)
         print(f'user_id = {current_user[0][0]}')
         print(f'group_link = {current_user[0][1]}')
-        # вспоминаем id группы, в которую пришёл пользователь
-        curs.execute('SELECT id, raffle FROM Groups WHERE link=:link', {'link': current_user[0][1]})
-        group_id_raf = curs.fetchall()
-        print(group_id_raf[0][0])
+        # вспоминаем id группы, в которую пришёл пользователь и другую инфу
+        curs.execute('SELECT id, raffle, description FROM Groups WHERE link=:link', {'link': current_user[0][1]})
+        group_id_raf_des = curs.fetchall()
+        print(group_id_raf_des[0][0])
         print('-----------------')
 
         # прежде чем менять статуc, нужно проверить, активна ли группа (на случай, если остались висящие кнопки, а розыгрыш уже был)
-        if group_id_raf[0][1] == 1:
+        if group_id_raf_des[0][1] == 1:
             conn.commit()
             conn.close()
             bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
@@ -216,9 +216,18 @@ def callback_group_part(call):
         # меняем статус участия на 1 в таблице связей
         curs.execute('UPDATE Relations_user_group SET participation=:participation '
                      'WHERE user_id=:user_id AND group_id=:group_id', {'participation': 1,
-                                                                       'user_id': current_user[0][0], 'group_id': group_id_raf[0][0]})
+                                                                       'user_id': current_user[0][0], 'group_id': group_id_raf_des[0][0]})
         conn.commit()
         conn.close()
+
+        # показываем описание группы от ведущего group_id_raf_des[0][2] - ECЛИ ОНО ЕСТЬ
+        if group_id_raf_des[0][2] != None:
+            bot.send_message(call.message.chat.id, text=f'Ура, ты в игре! 🎄 \n\n'
+                                                        f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️\n\n'
+                                                        f'{group_id_raf_des[0][2]}\n\n'
+                                                        f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️')
+        else:
+            bot.send_message(call.message.chat.id, text='Ура, ты в игре! 🎄')
 
         # сообщать в какую группу принят
 
@@ -252,7 +261,7 @@ def callback_group_part(call):
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
 
-        bot.send_message(call.message.chat.id, text='Если передумаешь, перейди по ссылке-приглашению вновь '
+        bot.send_message(call.message.chat.id, text='Ладушки-оладушки. Если передумаешь, перейди по ссылке-приглашению вновь '
                                                     'и сделай правильный выбор! ;)')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
         conn.commit()
@@ -326,7 +335,6 @@ def callback_group_part(call):
         conn.commit()
         conn.close()
 
-
     # КНОПКИ ПОДТВЕЖДЕНИЯ РОЗЫГРЫША
     elif data_parts[0] == 'yes_confirm':
         # скрываем клаву после выбора
@@ -337,6 +345,69 @@ def callback_group_part(call):
     elif data_parts[0] == 'no_confirm':
         bot.send_message(call.message.chat.id, text='Розыгрыш отменён.')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
+    # КНОПКИ ВВОДА ОПИСАНИЯ ГРУППЫ ОТ ВЕДУЩЕГО
+    elif data_parts[0] == 'yes_description':
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
+        print('---------------')
+        # вспоминаем id пользователя в БД
+        curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': call.message.chat.id})
+        current_user = curs.fetchall()
+        print(current_user)
+        print(f'user_id = {current_user[0][0]}')
+        print(f'group_link = {current_user[0][1]}')
+        # вспоминаем id группы, в которую пришёл пользователь и другую инфу
+        curs.execute('SELECT id, raffle, description FROM Groups WHERE link=:link', {'link': current_user[0][1]})
+        group_id_raf_des = curs.fetchall()
+        print(group_id_raf_des[0][0])
+        print('-----------------')
+        # прежде чем реагировать, нужно проверить, активна ли группа (на случай, если остались висящие кнопки, а розыгрыш уже был)
+        if group_id_raf_des[0][1] == 1:
+            conn.commit()
+            conn.close()
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+                                                        'Для создания новой перезапусти бота командой /start.')
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+            return
+
+        # выполняем, если розыгрыша не было
+        conn.commit()
+        conn.close()
+        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+        get_group_description(call.message)  # вызываем функцию получения описания группы
+
+    elif data_parts[0] == 'no_description':
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
+        print('---------------')
+        # вспоминаем id пользователя в БД
+        curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': call.message.chat.id})
+        current_user = curs.fetchall()
+        print(current_user)
+        print(f'user_id = {current_user[0][0]}')
+        print(f'group_link = {current_user[0][1]}')
+        # вспоминаем id группы, в которую пришёл пользователь и другую инфу
+        curs.execute('SELECT id, raffle, description FROM Groups WHERE link=:link', {'link': current_user[0][1]})
+        group_id_raf_des = curs.fetchall()
+        print(group_id_raf_des[0][0])
+        print('-----------------')
+        # прежде чем менять статуc, нужно проверить, активна ли группа (на случай, если остались висящие кнопки, а розыгрыш уже был)
+        if group_id_raf_des[0][1] == 1:
+            conn.commit()
+            conn.close()
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+                                                        'Для создания новой перезапусти бота командой /start.')
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+            return
+
+        # выполняем, если розыгрыша не было
+        conn.commit()
+        conn.close()
+        bot.send_message(call.message.chat.id, text='Ладушки-оладушки. Ты можешь устно сообщить участникам ориентировочную стоимость подарка, '
+                                                    'дату розыгрыша и дату торжественного вручения! 🎁')
+        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
+
 
     logcall(call)
 
@@ -394,6 +465,16 @@ def get_group_name(message): # получаем название группы
     bot.register_next_step_handler(message, check_group_name) # вызываем проверку названия
     logmess(message)
 
+
+def get_group_description(message): # получаем описание группы
+    bot.send_message(message.chat.id, text='Советую написать ориентировочную стоимость подарка, '
+                                           'дату розыгрыша и дату торжественного вручения! 🎁 '
+                                           'Длинна текста не должна превышать 1000 символов '
+                                           'и отредактировать отправленное описание будет нельзя ;)')
+    bot.register_next_step_handler(message, check_group_description)  # вызываем проверку описания
+    logmess(message)
+
+
 # проверяем валидность названия
 def check_group_name(message):
 
@@ -433,6 +514,7 @@ def check_group_name(message):
                                                                'Оно должно быть уникально в рамках твоих активных групп. '
                                                                'Перезапусти бота командой /start, чтобы попробовать ещё раз.')
                     else:
+
                         link_generation(message)  # вызываем генерацию
                 # если пользователя нет в БД
                 else:
@@ -451,6 +533,45 @@ def check_group_name(message):
         bot.send_message(message.chat.id, text='Санта не согласен!')
 
     logmess(message)
+
+
+def check_group_description(message):
+    # проверка типа (должен быть только текст)
+    if message.content_type == 'text':
+        # ограничим описание 1000 символами
+        if len(message.text) <= 1000:
+            print(f'описание: {message.text}')
+            # проверяем, что введено название, а не команда
+            if message.text[0] == '/':
+                bot.send_message(message.chat.id, text='Ой! Команда? Это не подходит для описания группы. '
+                                                       'Теперь ты можешь устно сообщить участникам ориентировочную стоимость подарка, '
+                                                       'дату розыгрыша и дату торжественного вручения! 🎁')
+            else:
+                # по tg_id - message.chat.id находим текущую сессию - current_group
+                # по сессии находим группу в Groups, чтобы добавить туда описание
+
+                conn = sqlite3.connect("santa.db")
+                curs = conn.cursor()
+                # # вспоминаем текущую группу ведущего
+                curs.execute('SELECT current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+                curr_group = curs.fetchall()
+                curs.execute('UPDATE Groups SET description=:description WHERE link=:link', {'description': message.text, 'link': curr_group[0][0]})
+                conn.commit()
+                conn.close()
+
+                print(message)
+                bot.send_message(message.chat.id, text='Чудно! 🎄 Информация успешно сохранена 🎄')
+
+        else:
+            bot.send_message(message.chat.id, text='Упс. Описание группы слишком длинное! '
+                                                   'Оно должно содержать не более 1000 символов. '
+                                                   'Теперь ты можешь устно сообщить участникам ориентировочную стоимость подарка, '
+                                                   'дату розыгрыша и дату торжественного вручения! 🎁')
+    else:
+        bot.send_message(message.chat.id, text='Санта не согласен!')
+
+    logmess(message)
+
 
 
 # генерация ссылки и занесение данных в БД
@@ -507,6 +628,8 @@ def link_generation(message):
         curs.execute('INSERT INTO Relations_user_group(user_id, group_id, participation) '
                      'VALUES (:user_id, :group_id, :participation)',
                      {'user_id': user_id[0][0], 'group_id': group_new[0][0], 'participation': 1})
+    conn.commit()
+    conn.close()
 
     bot.send_message(message.chat.id, text=f'🎄 Годится-ягодица! Группа «{message.text}» создана!\n\n'
                                            f'🎄 Вот ссылка-приглашение на участие для твоих друзей: '
@@ -514,8 +637,15 @@ def link_generation(message):
                                            f'🎄 Ты можешь ввести своё пожелание к подарку с помощью команды /enterwish.\n\n'
                                            f'🎄 После регистрации всех желающих ты можешь запустить розыгрыш '
                                            f'командой /rungame.\n\n')
-    conn.commit()
-    conn.close()
+
+    # клавиатура
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes_description')
+    key_no = types.InlineKeyboardButton(text='Нет', callback_data='no_description')
+    keyboard.add(key_yes, key_no)
+    question = 'Хочешь ввести дополнительную информацию для друзей, которую они увидят после подтверждения участия в розыгрыше?'
+    bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
+
     logmess(message)
 
 
@@ -539,13 +669,24 @@ def enter_new_wish(message):
         # ЕСЛИ ТЕКУЩЕЙ ГРУППЫ НЕТ, ТО СООБЩАТЬ ОБ ЭТОМ?
         # Если есть парамтр запуска, то не давать выбирать, елси есть то давать
 
-        # conn = sqlite3.connect("santa.db")
-        # curs = conn.cursor()
-        # curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
-        # leader_id = curs.fetchall()
+        conn = sqlite3.connect("santa.db")
+        curs = conn.cursor()
+        curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+        leader_id = curs.fetchall()
+        conn.commit()
+        conn.close()
 
-        bot.send_message(message.chat.id, text='Санта ждёт твоего пожелания! 🎁')
-        bot.register_next_step_handler(message, get_wish)
+        if len(leader_id) != 0:
+
+            bot.send_message(message.chat.id, text='Санта ждёт твоего пожелания! 🎁')
+            bot.register_next_step_handler(message, get_wish)
+
+        else:
+            bot.send_message(message.chat.id, text='Привет, я Санта-бот! 🎄 \n'
+                                                   'Начни с команды /start и создай свою первую группу для розыгрыша подарков! 🎄 '
+                                                   'Или присоединяйся к группе по ссылке от ведущего! 🎄')
+
+
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
     logmess(message)
@@ -554,34 +695,42 @@ def enter_new_wish(message):
 @bot.message_handler(commands=['rungame'])
 def start_game(message):
     if message.chat.type == 'private':
-        # выбираем из бд активные группы текущего пользователя
+        # выбираем из бд активные группы текущего пользователя, ЕСЛИ ОН ЕСТЬ В БД!
         conn = sqlite3.connect("santa.db")
         curs = conn.cursor()
         curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
         leader_id = curs.fetchall()
-        curs.execute('SELECT title FROM Groups WHERE leader_id=:leader_id AND raffle=:raffle', {'leader_id': leader_id[0][0], 'raffle': 0})
-        list_active_groups = curs.fetchall()
-        print(list_active_groups)
-        if len(list_active_groups) == 0:
-            bot.send_message(message.chat.id, text='Оу, кажется, у тебя нет активных групп для розыгрыша! '
-                                                   'Эта команда доступна только для ведущего.')
+
+        if len(leader_id) != 0:
+
+            curs.execute('SELECT title FROM Groups WHERE leader_id=:leader_id AND raffle=:raffle', {'leader_id': leader_id[0][0], 'raffle': 0})
+            list_active_groups = curs.fetchall()
+            print(list_active_groups)
+            if len(list_active_groups) == 0:
+                bot.send_message(message.chat.id, text='Оу, кажется, у тебя нет активных групп для розыгрыша! '
+                                                       'Эта команда доступна только для ведущего.')
+            else:
+                keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
+                # заносим названия активных групп в кнопки
+                for group in list_active_groups:
+                    title = group[0]
+                    button = types.KeyboardButton(text=title)
+                    keyboard.add(button)
+
+                button_cancel = types.KeyboardButton(text='Отмена')
+                keyboard.add(button_cancel)
+
+                bot.send_message(message.chat.id,
+                                 "Выбери группу, в которой хочешь запустить розыгрыш! "
+                                 "(Действие окончательно и необратимо.)",
+                                 reply_markup=keyboard)
+
+                bot.register_next_step_handler(message, confirm_run_game)
+
         else:
-            keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
-            # заносим названия активных групп в кнопки
-            for group in list_active_groups:
-                title = group[0]
-                button = types.KeyboardButton(text=title)
-                keyboard.add(button)
-
-            button_cancel = types.KeyboardButton(text='Отмена')
-            keyboard.add(button_cancel)
-
-            bot.send_message(message.chat.id,
-                             "Выбери группу, в которой хочешь запустить розыгрыш! "
-                             "(Действие окончательно и необратимо.)",
-                             reply_markup=keyboard)
-
-            bot.register_next_step_handler(message, confirm_run_game)
+            bot.send_message(message.chat.id, text='Привет, я Санта-бот! 🎄 \n'
+                                                   'Начни с команды /start и создай свою первую группу для розыгрыша подарков! 🎄 '
+                                                   'Или присоединяйся к группе по ссылке от ведущего! 🎄')
 
         conn.commit()
         conn.close()
