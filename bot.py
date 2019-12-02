@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # import config
+import importlib
 import os
 from urllib import response
 
@@ -18,15 +19,18 @@ from datetime import datetime
 from telebot import (apihelper, types)
 # from config import (token, socks5)
 from telebot.types import ReplyKeyboardRemove
-
 from settings import *
 
+# setting = importlib.import_module(os.getenv('.env'))
+# os.getenv('botusername')
+# from config import botusername
 
 apihelper.proxy = {'https': socks5}
 bot = telebot.TeleBot(token, threaded=False) # однопоточный режим
 print('сервер работает...')
 user = bot.get_me()
-
+# bot_username = botusername
+# print(bot_username)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -52,7 +56,7 @@ def send_welcome(message):
             conn = sqlite3.connect("santa.db")
             # создаем объект Cursor для работы с его методом execute()
             curs = conn.cursor()
-            # создаем связь с группой, если она существует иначе ссылка недействительна
+            # создаем связь с группой, если группа существует (иначе ссылка недействительна)
             curs.execute('SELECT * FROM Groups WHERE link=:link', {'link': start_param[1]})
             group_exists = curs.fetchall()
             print(f'есть группа: {group_exists}')
@@ -123,6 +127,24 @@ def send_welcome(message):
                 # связь с группой уже есть, значит это не первый переход по ссылке
                 else:
                     bot.send_message(message.chat.id, text=f'С возвращением в группу «{group_title[0][0]}»! 🎄')
+                    # тут проверим, пользователь участник или нет
+                    # (да - сообщить - ты уже являешься её участником, нет - предложить им стать)
+                    # relation_exists - выборка связи, relation_exists[0][2] - флаг участия (partisipation)
+
+                    print('связь')
+                    print(relation_exists)
+                    print(relation_exists[0][2])
+                    if relation_exists[0][2] == 1:
+                        bot.send_message(message.chat.id, text=f'Ты уже участвуешь в розыгрыше! 🎄')
+                    else:
+                        # снова та же клавиатура
+                        keyboard = types.InlineKeyboardMarkup(row_width=2)
+                        key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes_part')
+                        key_no = types.InlineKeyboardButton(text='Нет', callback_data='no_part')
+                        keyboard.add(key_yes, key_no)
+                        question = 'Готов принять участие в розыгрыше?'
+                        bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
+
                     conn.commit()
                     conn.close()
 
@@ -325,11 +347,14 @@ def check_group_name(message):
 # генерация ссылки и занесение данных в БД
 def link_generation(message):
     print(f'message.text: {message.text}')
+    print(f'link_generation - {message}')
 
     # генерация ссылки
     link_part = secrets.token_urlsafe(12)
     print(f'сгенерированная часть ссылки: {link_part}')
     link_full = 'https://t.me/shanta_bot?start=' + link_part
+    # доступ к переменной env
+    # link_full = 'https://t.me/'+ bot_username +'?start=' + link_part
     print(f'полная ссылка: {link_full}')
 
     # сохранение в БД
