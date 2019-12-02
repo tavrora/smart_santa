@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  bot:
+    image: registry-gitlab.smarthead.ru/at/secret_bot:latest
+    volumes:
+      - ./.env:/usr/src/app/.env
+      - ./santa.db:/usr/src/app/santa.db
+      - ./logs:/usr/src/app/logs
