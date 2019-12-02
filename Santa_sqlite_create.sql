@@ -11,6 +11,7 @@ CREATE TABLE Groups (
 	id integer PRIMARY KEY AUTOINCREMENT,
 	name varchar,
 	link varchar,
+	description text,
 	raffle boolean,
 	leader_id integer
 );
