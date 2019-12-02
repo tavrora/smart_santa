@@ -134,8 +134,7 @@ def send_welcome(message):
                         key_yes = types.InlineKeyboardButton(text='Конечно! 🎄', callback_data='yes_part_continue')
                         key_no = types.InlineKeyboardButton(text='Выйти', callback_data='no_part_continue')
                         keyboard.add(key_yes, key_no)
-                        question = 'Ты уже участвуешь в розыгрыше! \n ' \
-                                   'Готов продолжить? 🎄'
+                        question = "Ты уже участвуешь в розыгрыше!\nГотов продолжить? 🎄"
                         bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
                     else:
                         # снова та же клавиатура
@@ -143,12 +142,11 @@ def send_welcome(message):
                         key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes_part')
                         key_no = types.InlineKeyboardButton(text='Нет', callback_data='no_part')
                         keyboard.add(key_yes, key_no)
-                        question = 'Ты ещё не подтвердил участие в розыгрыше. \n' \
-                                   'Готов играть? 🎄'
+                        question = "Ты ещё не подтвердил участие в розыгрыше.\nГотов играть? 🎄"
                         bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
 
             elif len(group_exists) == 1 and group_exists[0][3] == 1:
-                bot.send_message(message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+                bot.send_message(message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                        'Для создания новой перезапусти бота командой /start.')
             else:
                 bot.send_message(message.chat.id, text='Ссылка запуска недействительна.')
@@ -203,7 +201,7 @@ def callback_group_part(call):
         if group_id_raf_des[0][1] == 1:
             conn.commit()
             conn.close()
-            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                         'Для создания новой перезапусти бота командой /start.')
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
@@ -226,8 +224,8 @@ def callback_group_part(call):
 
         # сообщать в какую группу принят
 
-        bot.send_message(call.message.chat.id, text='Введи пожелание к подарку или просто послание для своего Тайного Санты! 🎁'
-                                                    'Если хочешь сюрприз - сообщи об этом! 🎁')
+        bot.send_message(call.message.chat.id, text='Введи пожелание к подарку или просто послание для своего Тайного Санты! '
+                                                    'Если хочешь сюрприз — сообщи об этом! 🎁')
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
         enter_wish(call.message) # вызываем функцию получения пожелания от игрока
 
@@ -250,7 +248,7 @@ def callback_group_part(call):
         if group_id_raf[0][1] == 1:
             conn.commit()
             conn.close()
-            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                         'Для создания новой перезапусти бота командой /start.')
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
@@ -281,7 +279,7 @@ def callback_group_part(call):
         if group_id_raf[0][1] == 1:
             conn.commit()
             conn.close()
-            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                         'Для создания новой перезапусти бота командой /start.')
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
@@ -310,7 +308,7 @@ def callback_group_part(call):
         if group_id_raf[0][1] == 1:
             conn.commit()
             conn.close()
-            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                         'Для создания новой перезапусти бота командой /start.')
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
@@ -360,7 +358,7 @@ def callback_group_part(call):
         if group_id_raf_des[0][1] == 1:
             conn.commit()
             conn.close()
-            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                         'Для создания новой перезапусти бота командой /start.')
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
@@ -390,7 +388,7 @@ def callback_group_part(call):
         if group_id_raf_des[0][1] == 1:
             conn.commit()
             conn.close()
-            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершен. '
+            bot.send_message(call.message.chat.id, text='Розыгрыш в этой группе уже завершён. '
                                                         'Для создания новой перезапусти бота командой /start.')
             bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
             return
@@ -436,10 +434,9 @@ def get_wish(message):
                              {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
                 conn.commit()
                 conn.close()
-                bot.send_message(message.chat.id, text='Класс! 🎄 Санта учтёт твоё пожелание (или нет). \n'
-                                                       'Теперь жди розыгрыш! 🎄'
-                                                       'Кстати, ты можешь изменить своё пожелание до проведения '
-                                                       'розыгрыша командой /enterwish! 🎄')
+                bot.send_message(message.chat.id, text='Класс! 🎄 Тайный Санта учтёт твоё пожелание (или нет). \n'
+                                                       'Теперь жди розыгрыша! 🎄'
+                                                       'Кстати, ты можешь изменить пожелание командой /enterwish! 🎄')
             else:
                 bot.send_message(message.chat.id, text='Это не похоже на пожелание. '
                                                        'Ты можешь попробовать снова с помощью команды /enterwish! 🎁')
@@ -463,7 +460,7 @@ def get_group_name(message): # получаем название группы
 def get_group_description(message): # получаем описание группы
     bot.send_message(message.chat.id, text='Советую написать ориентировочную стоимость подарка, '
                                            'дату розыгрыша и дату торжественного вручения! 🎁 '
-                                           'Длинна текста не должна превышать 1000 символов '
+                                           'Длина текста не должна превышать 1000 символов '
                                            'и отредактировать отправленное описание будет нельзя ;)')
     bot.register_next_step_handler(message, check_group_description)  # вызываем проверку описания
     logmess(message)
@@ -646,10 +643,19 @@ def link_generation(message):
 @bot.message_handler(commands=['help'])
 def give_help(message):
     if message.chat.type == 'private':
-        bot.send_message(message.chat.id, text='/start - запустить бота и создать новую группу 🎄\n'
-                                               '/help - получить помощь 🎄\n'
-                                               '/enterwish - ввести новое пожелание к подарку 🎄\n'
-                                               '/rungame - запустить розыгрыш (для ведущего) 🎄')
+        bot.send_message(message.chat.id, text='/start — запустить бота и создать новую группу 🎄\n'
+                                               '/help — получить помощь 🎄\n'
+                                               '/enterwish — ввести новое пожелание к подарку 🎄\n'
+                                               '/rungame — запустить розыгрыш (для ведущего) 🎄')
+    else:
+        bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
+    logmess(message)
+
+
+@bot.message_handler(commands=['smarthead'])
+def give_help(message):
+    if message.chat.type == 'private':
+        bot.send_message(message.chat.id, text='Я люблю SmartHead! ❤️❤️❤️')
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
     logmess(message)
@@ -911,7 +917,7 @@ def run_game(run_group_id):
         try:
             # отправляем информацию Санте!
             bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
-                                                     f'Привет! Вот и розыгрыш в группe «{group_data[0][2]}»! 🎉\n'
+                                                     f'Привет! Вот и розыгрыш в группe «{group_data[0][2]}»! 🎉\n\n'
                                                      f'Ты будешь Тайным Сантой для человека по имени '
                                                      f'{player_name}! \n'
                                                      f'Его ник в телеграме: @{info[0][2]}.\n'
@@ -951,10 +957,10 @@ def run_game(run_group_id):
                 pl_wish = player_wish
 
             bot.send_message(leader_tg_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
-                                                   f'Игрок {missing_santa_name} - @{missing_santa[0][2]} '
-                                                   f'не получил послaние игрока {player_name} - @{info[0][2]} '
+                                                   f'Игрок {missing_santa_name} — @{missing_santa[0][2]} '
+                                                   f'не получил послaние игрока {player_name} — @{info[0][2]} '
                                                    f'c пожеланием «{pl_wish}» 🥺 \n\n'
-                                                   f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились!')
+                                                   f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨')
 
         # меняем статус розыгрыша raffle на 1 !
         curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
@@ -969,47 +975,47 @@ def run_game(run_group_id):
 # текст обрабатывается в ручном вводе названия группы
 @bot.message_handler(content_types=['text'])
 def santa_text(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне текст. Ок.')
+    bot.send_message(message.chat.id, text='Санту не пересантишь текстами! 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['sticker'])
 def santa_sticker(message):
-    bot.send_message(message.chat.id, text='Человек меня стикерит. Ок.')
+    bot.send_message(message.chat.id, text='Человек Санту стикерит, стикерит, да не перестикерит! 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['photo'])
 def santa_photo(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне фото. Ок.')
+    bot.send_message(message.chat.id, text='Санта смотрит на фото 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['document'])
 def santa_document(message):
-    bot.send_message(message.chat.id, text='Человек меня документит. Ок.')
+    bot.send_message(message.chat.id, text='Человек меня документит 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['voice'])
 def santa_voice(message):
-    bot.send_message(message.chat.id, text='Человек говорит со мной. Ок.')
+    bot.send_message(message.chat.id, text='Санта выслушал человека 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['audio'])
 def santa_audio(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне аудио. Ок.')
+    bot.send_message(message.chat.id, text='Санта станцевал под твою музыку 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['video', 'video_note'])
 def santa_video(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне видео. Ок.')
+    bot.send_message(message.chat.id, text='Санта не смотрит телевизор! 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['location'])
 def santa_location(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне локацию. Ок.')
+    bot.send_message(message.chat.id, text='Санта не пойдёт искать человека 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['contact'])
 def santa_contact(message):
-    bot.send_message(message.chat.id, text='Человек отправил мне контакт. Ок.')
+    bot.send_message(message.chat.id, text='Санта избегает контактов! 🎅🏽')
     logmess(message)
 
 
