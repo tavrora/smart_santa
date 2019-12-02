@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="720e1c12-1012-4aa5-934b-2358f61bddf4" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/santa.db" beforeDir="false" afterPath="$PROJECT_DIR$/santa.db" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -116,7 +115,7 @@
       <workItem from="1571054432105" duration="10917000" />
       <workItem from="1571214836710" duration="276359000" />
       <workItem from="1575261951766" duration="16522000" />
-      <workItem from="1575285860257" duration="30049000" />
+      <workItem from="1575285860257" duration="30791000" />
     </task>
     <servers />
   </component>
