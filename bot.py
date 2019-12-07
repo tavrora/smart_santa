@@ -426,14 +426,20 @@ def get_wish(message):
                 curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
                 current_user = curs.fetchall()
                 # вспоминаем id группы, в которую пришёл пользователь
+                # А ЕСЛИ НИ В КАКУЮ НЕ ПРИШЕЛ, ТО ПАДАЕТ (не пускать сюда из /enterwish без текущей группы
                 curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': current_user[0][1]})
                 group_id = curs.fetchall()
                 # заносим/меняем пожелание в таблице связей
+                print('---------=========')
+                print(current_user[0][0])
+                print(group_id[0][0])
                 curs.execute('UPDATE Relations_user_group SET wish=:wish '
                              'WHERE user_id=:user_id AND group_id=:group_id',
                              {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
                 conn.commit()
                 conn.close()
+                # ути, моя прелесть (не уверена, что нужен стикер)
+                # bot.send_sticker(message.chat.id, 'CAADAgADxQAD1JkmDfzbMn5BTH3LFgQ')
                 bot.send_message(message.chat.id, text='Класс! 🎄 Тайный Санта учтёт твоё пожелание (или нет). \n'
                                                        'Теперь жди розыгрыша! 🎄'
                                                        'Кстати, ты можешь изменить пожелание командой /enterwish! 🎄')
@@ -653,7 +659,7 @@ def give_help(message):
 
 
 @bot.message_handler(commands=['smarthead'])
-def give_help(message):
+def smart_head(message):
     if message.chat.type == 'private':
         bot.send_message(message.chat.id, text='Я люблю SmartHead! ❤️❤️❤️')
     else:
@@ -664,19 +670,17 @@ def give_help(message):
 @bot.message_handler(commands=['enterwish'])
 def enter_new_wish(message):
     if message.chat.type == 'private':
-        # НУЖНА ПРОВЕРКА, ЧТО ПОЛЬЗОВАТЕЛЬ НАХОДИТСЯ В ЧАТЕ ПО ССЫЛКЕ
-        # ЧТОБЫ ЗНАТЬ ГРУППУ, КУДА ДОБАВЛЯТЬ ПОЖЕЛАНИЯ
-        # ЕСЛИ ТЕКУЩЕЙ ГРУППЫ НЕТ, ТО СООБЩАТЬ ОБ ЭТОМ?
-        # Если есть парамтр запуска, то не давать выбирать, елси есть то давать
+        # проверяем, что пользователь есть в бд и у него есть текущая группа
+        # Если есть парамтр запуска, то не давать выбирать, если нет - это обработано уже
 
         conn = sqlite3.connect("santa.db")
         curs = conn.cursor()
-        curs.execute('SELECT id FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
-        leader_id = curs.fetchall()
+        curs.execute('SELECT current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
+        user_curr_gr = curs.fetchall()
         conn.commit()
         conn.close()
 
-        if len(leader_id) != 0:
+        if user_curr_gr[0][0] != None:
 
             bot.send_message(message.chat.id, text='Санта ждёт твоего пожелания! 🎁')
             bot.register_next_step_handler(message, get_wish)
@@ -744,7 +748,7 @@ def confirm_run_game(message):
 
     # обработка Отмены (убить клавиатуру)
     if message.content_type == 'text' and message.text == 'Отмена':
-        bot.send_message(message.chat.id, text='Окей, отмена.', reply_markup=ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, text='Розыгрыш отменён.', reply_markup=ReplyKeyboardRemove())
         return
 
     if message.content_type == 'text' and message.text[0] != '/':
@@ -813,7 +817,7 @@ def run_game(run_group_id):
     curs.execute('SELECT id, leader_id, title FROM Groups WHERE id=:id', {'id': run_group_id})
     group_data = curs.fetchall()
 
-    # опять находим tg_id ведущего по его бд_id
+    # находим tg_id ведущего по его бд_id
     curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': group_data[0][1]})
     leader_telegram_id = curs.fetchall()
 
@@ -863,7 +867,7 @@ def run_game(run_group_id):
     with open(os.path.join(os.path.dirname(__file__), 'logs', f'logs_{gr}.txt'), 'w') as log_list:
         log_list.write(f'group_id: {str(gr)}\n')
         log_list.write(f'run_game: {now}\n')
-        log_list.write(f'leader tg_id: {group_data[0][1]}\n') # упадет?
+        log_list.write(f'leader tg_id: {group_data[0][1]}\n')
         log_list.write('list_game: ')
         for i in list_user_id:
             log_list.write(f'{str(i)}, ')
@@ -897,9 +901,6 @@ def run_game(run_group_id):
         print(f'santa_tg_id: {santa_tg_id[0][0]}')
 
         # Обработка None в сообщении для Тайного Санты
-        player_name = ''
-        player_wish = ''
-
         if info[0][0] == None or info[0][0] == '':
             player_name = info[0][1]
         elif info[0][1] == None or info[0][1] == '':
@@ -907,20 +908,25 @@ def run_game(run_group_id):
         else:
             player_name = f'{info[0][0]} {info[0][1]}'
 
-        if info[0][3] != None and info[0][3] != '':
-            player_wish = info[0][3]
+        if info[0][2] == None or info[0][2] == '':
+            player_username = 'отсутствует'
         else:
+            player_username = f'@{info[0][2]}'
+
+        if info[0][3] == None or info[0][3] == '':
             player_wish = 'не написано'
+        else:
+            player_wish = info[0][3]
 
         # бот должен проверять доступность юзера перед отправкой, чтобы не падать
         print(f'santa_tg_id: {santa_tg_id[0][0]}')
         try:
             # отправляем информацию Санте!
             bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
-                                                     f'Привет! Вот и розыгрыш в группe «{group_data[0][2]}»! 🎉\n\n'
+                                                     f'Привет! Розыгрыш в группe «{group_data[0][2]}» завершён! 🎉\n\n'
                                                      f'Ты будешь Тайным Сантой для человека по имени '
                                                      f'{player_name}! \n'
-                                                     f'Его ник в телеграме: @{info[0][2]}.\n'
+                                                     f'Его ник в телеграме: {player_username}.\n'
                                                      f'Его послание для тебя: {player_wish} 🎁\n\n'
                                                      f'Ты можешь прислушаться к пожеланию, если хочешь.\n\n'
                                                      f'Счастливого Нового Года и до новых встреч!\n\n'
@@ -941,33 +947,34 @@ def run_game(run_group_id):
             else:
                 missing_santa_name = f'{missing_santa[0][0]} {missing_santa[0][1]}'
 
-            # узнаем tg_id ведущего по его бд_id
-            print(f'leader_tg_id: {group_data[0][0]}')
-            curs.execute('SELECT tg_id FROM Users WHERE id=:id', {'id': group_data[0][1]})
-            leader_tg_id = curs.fetchall()
-
             print(f'missing_santa: {missing_santa}')
-            print(f'leader_tg_id: {leader_tg_id}')
-
-            pl_wish = ''
+            print(f'leader_tg_id: {leader_telegram_id[0][0]}')
 
             if player_wish == '':
                 pl_wish = 'не написано'
             else:
                 pl_wish = player_wish
 
-            bot.send_message(leader_tg_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
+            bot.send_message(leader_telegram_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
                                                    f'Игрок {missing_santa_name} — @{missing_santa[0][2]} '
                                                    f'не получил послaние игрока {player_name} — @{info[0][2]} '
                                                    f'c пожеланием «{pl_wish}» 🥺 \n\n'
                                                    f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨')
 
-        # меняем статус розыгрыша raffle на 1 !
+        # меняем статус розыгрыша raffle на 1
         curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
                      {'raffle': 1, 'id': group_data[0][0]})
 
     conn.commit()
     conn.close()
+
+    # аудио для ведущего
+    bot.send_audio(leader_telegram_id[0][0],
+                   audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
+                   caption='Игра успешно закончена. Санта гордится тобой! 🎄',
+                   performer='Простоквашино',
+                   title='Кабы...')
+    bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
 
 
 # обработка разных типов сообщений
@@ -975,12 +982,27 @@ def run_game(run_group_id):
 # текст обрабатывается в ручном вводе названия группы
 @bot.message_handler(content_types=['text'])
 def santa_text(message):
-    bot.send_message(message.chat.id, text='Санту не пересантишь текстами! 🎅🏽')
+    # необходимая пасхалка для Барского
+    if message.text.lower() == 'хуй':
+        bot.send_sticker(message.chat.id, 'CAADAgADwAAD1JkmDRREnT9mK6BvFgQ')
+    elif message.text.lower() == 'пизда':
+        bot.send_sticker(message.chat.id, 'CAADAgAD0wAD1JkmDRI4IyyS5lBtFgQ')
+    else:
+        bot.reply_to(message, f'Сам {message.text} 🎅🏽')
+        # bot.send_message(message.chat.id, text='Санту не пересантишь текстами! 🎅🏽')
     logmess(message)
+
+# бот редактирует свое ругательство после редактирования сообщения
+@bot.edited_message_handler(func=lambda message: True)
+def edit_message(message):
+    bot.edit_message_text(chat_id=message.chat.id,
+                          text= f'Сам {message.text} 🎅🏽',
+                          message_id=message.message_id + 1)
 
 @bot.message_handler(content_types=['sticker'])
 def santa_sticker(message):
-    bot.send_message(message.chat.id, text='Человек Санту стикерит, стикерит, да не перестикерит! 🎅🏽')
+    bot.send_sticker(message.chat.id, 'CAADAgADswAD1JkmDeRY6OpJBI6iFgQ')
+    bot.send_message(message.chat.id, text='Стикерит, стикерит, да не перестикерит! 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['photo'])
@@ -990,7 +1012,7 @@ def santa_photo(message):
 
 @bot.message_handler(content_types=['document'])
 def santa_document(message):
-    bot.send_message(message.chat.id, text='Человек меня документит 🎅🏽')
+    bot.send_message(message.chat.id, text='Человек Санту отдокументил... 🎅🏽')
     logmess(message)
 
 @bot.message_handler(content_types=['voice'])
@@ -1019,25 +1041,7 @@ def santa_contact(message):
     logmess(message)
 
 
-# # бот дразнится
-# @bot.message_handler(func=lambda message: True)
-# def echo_all(message):
-#     # bot.reply_to(message, message.text)  # ответ на сообщение
-#     bot.send_message(message.chat.id, message.text)  # повторение сообщения
-
-# # бот ругается
-# @bot.message_handler(func=lambda message: True)
-# def any_message(message):
-#     bot.reply_to(message, "Сам {!s}".format(message.text))
-#
-# # бот редактирует свое ругательство после редактирования сообщения
-# @bot.edited_message_handler(func=lambda message: True)
-# def edit_message(message):
-#     bot.edit_message_text(chat_id=message.chat.id,
-#                           text= "Сам {!s}".format(message.text),
-#                           message_id=message.message_id + 1)
-
-
+# логи в консоль
 def logmess(message):
     print(f'\nmessage: {message}') # можно убрать этот вывод
     print('\n***')
