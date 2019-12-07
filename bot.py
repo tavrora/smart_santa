@@ -426,13 +426,10 @@ def get_wish(message):
                 curs.execute('SELECT id, current_group FROM Users WHERE tg_id=:tg_id', {'tg_id': message.chat.id})
                 current_user = curs.fetchall()
                 # вспоминаем id группы, в которую пришёл пользователь
-                # А ЕСЛИ НИ В КАКУЮ НЕ ПРИШЕЛ, ТО ПАДАЕТ (не пускать сюда из /enterwish без текущей группы
+                # А ЕСЛИ НИ В КАКУЮ НЕ ПРИШЕЛ, ТО ПАДАЕТ (не пускать сюда из /enterwish без текущей группы)
                 curs.execute('SELECT id FROM Groups WHERE link=:link', {'link': current_user[0][1]})
                 group_id = curs.fetchall()
                 # заносим/меняем пожелание в таблице связей
-                print('---------=========')
-                print(current_user[0][0])
-                print(group_id[0][0])
                 curs.execute('UPDATE Relations_user_group SET wish=:wish '
                              'WHERE user_id=:user_id AND group_id=:group_id',
                              {'wish': message.text, 'user_id': current_user[0][0], 'group_id': group_id[0][0]})
@@ -921,9 +918,9 @@ def run_game(run_group_id):
         # бот должен проверять доступность юзера перед отправкой, чтобы не падать
         print(f'santa_tg_id: {santa_tg_id[0][0]}')
         try:
-            # отправляем информацию Санте!
+            # отправляем информацию Тайному Санте!
             bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
-                                                     f'Привет! Розыгрыш в группe «{group_data[0][2]}» завершён! 🎉\n\n'
+                                                     f'Ура! Розыгрыш в группe «{group_data[0][2]}» завершён! 🎉\n\n'
                                                      f'Ты будешь Тайным Сантой для человека по имени '
                                                      f'{player_name}! \n'
                                                      f'Его ник в телеграме: {player_username}.\n'
@@ -931,6 +928,15 @@ def run_game(run_group_id):
                                                      f'Ты можешь прислушаться к пожеланию, если хочешь.\n\n'
                                                      f'Счастливого Нового Года и до новых встреч!\n\n'
                                                      f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
+            # аудио для каждого!
+            bot.send_audio(santa_tg_id[0][0],
+                           audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
+                           caption='☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️\n\n'
+                                   'Музыка тебе, потому что...',
+                           performer='Простоквашино',
+                           title='Кабы не было зимы...')
+            bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+
         except telebot.apihelper.ApiException:
             print('ветка исключений......')
 
@@ -968,13 +974,16 @@ def run_game(run_group_id):
     conn.commit()
     conn.close()
 
-    # аудио для ведущего
-    bot.send_audio(leader_telegram_id[0][0],
-                   audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
-                   caption='Игра успешно закончена. Санта гордится тобой! 🎄',
-                   performer='Простоквашино',
-                   title='Кабы...')
-    bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+    # аудио для ведущего, елси он не участвовал
+    if group_data[0][1] not in list_user_id:
+        bot.send_audio(leader_telegram_id[0][0],
+                       audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
+                       caption='Игра успешно закончена. Санта гордится тобой! 🎄',
+                       performer='Простоквашино',
+                       title='Кабы не было зимы...')
+        bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+    else:
+        bot.send_message(leader_telegram_id[0][0], text=f'Игра успешно закончена. Санта гордится тобой! 🎄')
 
 
 # обработка разных типов сообщений
