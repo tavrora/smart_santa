@@ -935,7 +935,7 @@ def run_game(run_group_id):
                                    'Музыка тебе, потому что...',
                            performer='Простоквашино',
                            title='Кабы не было зимы...')
-            bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+            bot.send_sticker(santa_tg_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
 
         except telebot.apihelper.ApiException:
             print('ветка исключений......')
