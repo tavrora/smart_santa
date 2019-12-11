@@ -108,8 +108,8 @@ def send_welcome(message):
                                  {'user_id': user_id[0][0], 'group_id': group_exists[0][0]})
 
                     # первое привествие игрока! (однократное)
-                    bot.send_message(message.chat.id, text=f'Привет! 🎄 Я Санта-бот и ты пришёл ко мне по приглашению '
-                                                           f'в группу «{group_title[0][0]}»! 🎄 '
+                    bot.send_message(message.chat.id, text=f'Привет! Я Санта-бот и ты пришёл ко мне по приглашению '
+                                                           f'в группу «{group_title[0][0]}»! '
                                                            'Для твоего подарка уже есть место под ёлкой! 🎄')
                     # клавиатура
                     keyboard = types.InlineKeyboardMarkup(row_width=2)
@@ -930,8 +930,8 @@ def run_game(run_group_id):
                                   f'{player_name}! \n'
                                   f'Его ник в телеграме: {player_username}.\n'
                                   f'Его послание для тебя: {player_wish} ✨\n\n'
-                                  f'Ты можешь прислушаться к пожеланию, если хочешь ✨\n\n'
-                                  f'Счастливого Нового Года и до новых встреч!\n\n'
+                                  f'Ты можешь прислушаться к пожеланию, если хочешь.\n\n'
+                                  f'Счастливого Нового Года и до новых встреч! ✨\n\n'
                                   f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️')
         except telebot.apihelper.ApiException:
             print('ветка исключений......')
@@ -959,7 +959,7 @@ def run_game(run_group_id):
                 print(f'pl_wish: {pl_wish}')
 
             if missing_santa[0][2] == None or missing_santa[0][2] == '':
-                santa_username = 'без телеграм-ника'
+                santa_username = 'отсутствует'
             else:
                 santa_username = f'@{missing_santa[0][2]}'
 
@@ -968,12 +968,22 @@ def run_game(run_group_id):
             else:
                 play_username = f'@{info[0][2]}'
 
-            bot.send_message(leader_telegram_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
-                                                            f'Игрок {missing_santa_name} — {santa_username} '
-                                                            f'не получил послaние игрока {player_name} — {play_username} '
-                                                            f'{pl_wish} 🥺 \n\n'
-                                                            f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨',
-                             parse_mode='Markdown')
+            # bot.send_message(leader_telegram_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
+            #                                                 f'Игрок {missing_santa_name} — {santa_username} '
+            #                                                 f'не получил послaние игрока {player_name} — {play_username} '
+            #                                                 f'{pl_wish} 🥺 \n\n'
+            #                                                 f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨',
+            #                  parse_mode='Markdown')
+
+            bot.send_message(leader_telegram_id[0][0], parse_mode='Markdown',
+                             text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
+                                  f'Игрок: {missing_santa_name}\n'
+                                  f'телеграм-ник: {santa_username}\n'
+                                  f'не получил послaние 🥺\n'
+                                  f'игрока: {player_name}\n'
+                                  f'телеграм-ник: {play_username}\n'
+                                  f'пожелание: {pl_wish} \n\n'
+                                  f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨')
 
         # меняем статус розыгрыша raffle на 1
         curs.execute('UPDATE Groups SET raffle=:raffle WHERE id=:id',
@@ -999,8 +1009,9 @@ def santa_text(message):
     # необходимая пасхалка для Барского
     if message.text.lower() == 'хуй':
         bot.send_sticker(message.chat.id, 'CAADAgADwAAD1JkmDRREnT9mK6BvFgQ')
-    elif message.text.lower() == 'пизда':
-        bot.send_sticker(message.chat.id, 'CAADAgAD0wAD1JkmDRI4IyyS5lBtFgQ')
+    # кажется, Игорь не согласен
+    # elif message.text.lower() == 'пизда':
+    #     bot.send_sticker(message.chat.id, 'CAADAgAD0wAD1JkmDRI4IyyS5lBtFgQ')
     else:
         bot.reply_to(message, f'Сам {message.text} 🎅🏽')
         # bot.send_message(message.chat.id, text='Санту не пересантишь текстами! 🎅🏽')
