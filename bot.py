@@ -917,7 +917,7 @@ def run_game(run_group_id):
         if info[0][3] == None or info[0][3] == '':
             player_wish = 'не написано'
         else:
-            player_wish = f'_{info[0][3]}_'
+            player_wish = f'_«{info[0][3]}»_'
 
         # бот должен проверять доступность юзера перед отправкой, чтобы не падать
         print(f'santa_tg_id: {santa_tg_id[0][0]}')
@@ -953,9 +953,9 @@ def run_game(run_group_id):
             print(f'leader_tg_id: {leader_telegram_id[0][0]}')
 
             if info[0][3] == None or info[0][3] == '':
-                pl_wish = 'без пожелания'
+                pl_wish = 'отсутствует'
             else:
-                pl_wish = f'c пожеланием «{info[0][3]}»'
+                pl_wish = f'«_{info[0][3]}_»'
                 print(f'pl_wish: {pl_wish}')
 
             if missing_santa[0][2] == None or missing_santa[0][2] == '':
@@ -964,7 +964,7 @@ def run_game(run_group_id):
                 santa_username = f'@{missing_santa[0][2]}'
 
             if info[0][2] == None or info[0][2] == '':
-                play_username = 'без телеграм-ника'
+                play_username = 'отсутствует'
             else:
                 play_username = f'@{info[0][2]}'
 
