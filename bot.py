@@ -998,7 +998,8 @@ def run_game(run_group_id):
                    caption='Игра успешно закончена. Санта гордится тобой! 🎄',
                    performer='Простоквашино',
                    title='Кабы...')
-    bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+    # bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+    bot.send_sticker(leader_telegram_id[0][0], 'CAADAgAD8QAD1JkmDUUaM3BaKIWIFgQ')
 
 
 # обработка разных типов сообщений
@@ -1008,7 +1009,8 @@ def run_game(run_group_id):
 def santa_text(message):
     # необходимая пасхалка для Барского
     if message.text.lower() == 'хуй':
-        bot.send_sticker(message.chat.id, 'CAADAgADwAAD1JkmDRREnT9mK6BvFgQ')
+        # bot.send_sticker(message.chat.id, 'CAADAgADwAAD1JkmDRREnT9mK6BvFgQ')
+        bot.send_sticker(message.chat.id, 'CAADAgAD9QAD1JkmDVKDeGMmj73RFgQ')
     # кажется, Игорь не согласен
     # elif message.text.lower() == 'пизда':
     #     bot.send_sticker(message.chat.id, 'CAADAgAD0wAD1JkmDRI4IyyS5lBtFgQ')
@@ -1026,7 +1028,8 @@ def edit_message(message):
 
 @bot.message_handler(content_types=['sticker'])
 def santa_sticker(message):
-    bot.send_sticker(message.chat.id, 'CAADAgADswAD1JkmDeRY6OpJBI6iFgQ')
+    # bot.send_sticker(message.chat.id, 'CAADAgADswAD1JkmDeRY6OpJBI6iFgQ')
+    bot.send_sticker(message.chat.id, 'CAADAgAD8gAD1JkmDaqAhDTZW4DIFgQ')
     bot.send_message(message.chat.id, text='Стикерит, стикерит, да не перестикерит! 🎅🏽')
     logmess(message)
 
