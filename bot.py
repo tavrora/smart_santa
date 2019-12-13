@@ -85,14 +85,9 @@ def send_welcome(message):
                 if len(relation_exists) == 0:
                     db.insert_rel_user_with_group(user_id[0][0], group_exists[0][0])
                     # первое привествие игрока! (однократное)
-# <<<<<<< HEAD
                     bot.send_message(message.chat.id, text=f'Привет! 🎄 Я Санта-бот и ты пришёл ко мне по приглашению '
                                                            f'в группу «{group_exists[0][1]}»! 🎄 '
-# =======
-#                     bot.send_message(message.chat.id, text=f'Привет! Я Санта-бот и ты пришёл ко мне по приглашению '
-#                                                            f'в группу «{group_title[0][0]}»! '
-# >>>>>>> edits_for_prod
-                                                           'Для твоего подарка уже есть место под ёлкой! 🎄')
+                                                           f'Для твоего подарка уже есть место под ёлкой! 🎄')
                     # клавиатура
                     keyboard = types.InlineKeyboardMarkup(row_width=2)
                     key_yes = types.InlineKeyboardButton(text='Да', callback_data=f'yes_part:{group_exists[0][0]}')
@@ -391,16 +386,11 @@ def callback_group_part(call):
         # выполняем, если розыгрыша не было
         conn.commit()
         conn.close()
-# <<<<<<< HEAD
+
         bot.send_message(call.message.chat.id, text=f'Ладушки-оладушки. Ты можешь устно сообщить участникам '
                                                     f'группы «{group_id_raf_des_tit[0][3]}» ориентировочную стоимость подарка, '
                                                     f'дату розыгрыша и дату торжественного вручения! 🎁')
-# =======
-#         bot.send_message(call.message.chat.id, text='Ладушки-оладушки. Ты можешь устно сообщить участникам ориентировочную стоимость подарка, '
-#                                                     'дату розыгрыша и дату торжественного вручения!')
-# >>>>>>> edits_for_prod
         bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-
 
     logcall(call)
 
@@ -438,15 +428,10 @@ def get_wish(message):
                 conn.close()
                 # ути, моя прелесть (не уверена, что нужен стикер)
                 # bot.send_sticker(message.chat.id, 'CAADAgADxQAD1JkmDfzbMn5BTH3LFgQ')
-# <<<<<<< HEAD
                 bot.send_message(message.chat.id, text=f'Класс! 🎄 Тайный Санта учтёт твоё пожелание (или нет). \n'
                                                        f'Теперь жди розыгрыша в группе «{group_id_tit[0][1]}»! 🎄'
                                                        f'Кстати, ты можешь изменить пожелание командой /enterwish! 🎄')
-# =======
-#                 bot.send_message(message.chat.id, text='Класс! 🎄 Тайный Санта учтёт твоё пожелание (или нет). \n'
-#                                                        'Теперь жди розыгрыша! 🎄\n'
-#                                                        'Кстати, ты можешь изменить пожелание командой /enterwish! 🎄')
-# >>>>>>> edits_for_prod
+
             else:
                 bot.send_message(message.chat.id, text='Это не похоже на пожелание. '
                                                        'Ты можешь попробовать снова с помощью команды /enterwish!')
@@ -563,13 +548,8 @@ def check_group_description(message):
                 conn.commit()
                 conn.close()
 
-                print(message)
-# <<<<<<< HEAD
                 bot.send_message(message.chat.id, text=f'Чудно! 🎄 Информация для группы '
                                                        f'«{group_title[0][0]}» успешно сохранена 🎄')
-# =======
-#                 bot.send_message(message.chat.id, text='Чудно! Информация успешно сохранена 🎄')
-# >>>>>>> edits_for_prod
 
         else:
             bot.send_message(message.chat.id, text='Упс. Описание группы слишком длинное! '
@@ -698,13 +678,9 @@ def enter_new_wish(message):
             bot.register_next_step_handler(message, get_wish)
 
         else:
-# <<<<<<< HEAD
-#             bot.send_message(message.chat.id, text='Начни с команды /start и создай свою первую группу для розыгрыша подарков! 🎄 '
-# =======
-            bot.send_message(message.chat.id, text='Начни с команды /start и создай свою первую группу для розыгрыша подарков! '
-# >>>>>>> edits_for_prod
-                                                   'Или присоединяйся к группе по ссылке от ведущего! 🎄')
 
+            bot.send_message(message.chat.id, text='Начни с команды /start и создай свою первую группу для розыгрыша подарков! '
+                                                   'Или присоединяйся к группе по ссылке от ведущего! 🎄')
 
     else:
         bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
@@ -799,13 +775,8 @@ def confirm_run_game(message):
 
             # клавиатура
             keyboard_confirm = types.InlineKeyboardMarkup(row_width=2)
-# <<<<<<< HEAD
             key_confirm_yes = types.InlineKeyboardButton(text='Пуск!', callback_data=f'yes_confirm:{group_id[0][0]}')
             key_confirm_no = types.InlineKeyboardButton(text='Отмена', callback_data=f'no_confirm:{group_id[0][0]}')
-# =======
-#             key_confirm_yes = types.InlineKeyboardButton(text='Пуск! 🎄', callback_data=f'yes_confirm:{group_id[0][0]}')
-#             key_confirm_no = types.InlineKeyboardButton(text='Отмена', callback_data='no_confirm')
-# >>>>>>> edits_for_prod
             keyboard_confirm.add(key_confirm_yes, key_confirm_no)
             question = 'Требуется подтверждение запуска: 3, 2, 1...'
             bot.send_message(message.from_user.id, text=question, reply_markup=keyboard_confirm)
@@ -941,27 +912,6 @@ def run_game(run_group_id):
         # бот должен проверять доступность юзера перед отправкой, чтобы не падать
         print(f'santa_tg_id: {santa_tg_id[0][0]}')
         try:
-# <<<<<<< HEAD
-#             # отправляем информацию Тайному Санте!
-#             bot.send_message(santa_tg_id[0][0], text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
-#                                                      f'Ура! Розыгрыш в группe «{group_data[0][2]}» завершён! 🎉\n\n'
-#                                                      f'Ты будешь Тайным Сантой для человека по имени '
-#                                                      f'{player_name}! \n'
-#                                                      f'Его ник в телеграме: {player_username}.\n'
-#                                                      f'Его послание для тебя: {player_wish} 🎁\n\n'
-#                                                      f'Ты можешь прислушаться к пожеланию, если хочешь.\n\n'
-#                                                      f'Счастливого Нового Года и до новых встреч!\n\n'
-#                                                      f'🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄🎄')
-            # аудио для каждого! отменили
-            # bot.send_audio(santa_tg_id[0][0],
-            #                audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
-            #                caption='☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️\n\n'
-            #                        'Музыка тебе, потому что...',
-            #                performer='Простоквашино',
-            #                title='Кабы не было зимы...')
-            # bot.send_sticker(santa_tg_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
-
-# =======
             # отправляем информацию Санте!
             bot.send_message(santa_tg_id[0][0], parse_mode='Markdown',
                              text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
@@ -973,7 +923,16 @@ def run_game(run_group_id):
                                   f'Ты можешь прислушаться к пожеланию, если хочешь.\n\n'
                                   f'Счастливого Нового Года и до новых встреч! ✨\n\n'
                                   f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️')
-# >>>>>>> edits_for_prod
+
+            # аудио для каждого! отменили
+            # bot.send_audio(santa_tg_id[0][0],
+            #                audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
+            #                caption='☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️☃️\n\n'
+            #                        'Музыка тебе, потому что...',
+            #                performer='Простоквашино',
+            #                title='Кабы не было зимы...')
+            # bot.send_sticker(santa_tg_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
+
         except telebot.apihelper.ApiException:
             print('ветка исключений......')
 
@@ -1009,13 +968,6 @@ def run_game(run_group_id):
             else:
                 play_username = f'@{info[0][2]}'
 
-            # bot.send_message(leader_telegram_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
-            #                                                 f'Игрок {missing_santa_name} — {santa_username} '
-            #                                                 f'не получил послaние игрока {player_name} — {play_username} '
-            #                                                 f'{pl_wish} 🥺 \n\n'
-            #                                                 f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨',
-            #                  parse_mode='Markdown')
-
             bot.send_message(leader_telegram_id[0][0], parse_mode='Markdown',
                              text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
                                   f'Игрок: {missing_santa_name}\n'
@@ -1039,13 +991,8 @@ def run_game(run_group_id):
                    audio=open(os.path.join(os.path.dirname(__file__), 'music', 'Kaby_ne_bylo_zimy.mp3'), 'rb'),
                    caption=f'Игра группы «{group_data[0][2]}» успешно закончена. Санта гордится тобой! 🎄',
                    performer='Простоквашино',
-# <<<<<<< HEAD
-#                    title='Кабы не было зимы...')
-#     bot.send_sticker(leader_telegram_id[0][0], 'CAADAgADuQAD1JkmDXikIH-iJs3EFgQ')
-# =======
                    title='Кабы не было зимы...')
     bot.send_sticker(leader_telegram_id[0][0], 'CAADAgAD8QAD1JkmDUUaM3BaKIWIFgQ')
-# >>>>>>> edits_for_prod
 
 
 # обработка разных типов сообщений
@@ -1055,11 +1002,7 @@ def run_game(run_group_id):
 def santa_text(message):
     # необходимая пасхалка для Барского
     if message.text.lower() == 'хуй':
-        # bot.send_sticker(message.chat.id, 'CAADAgADwAAD1JkmDRREnT9mK6BvFgQ')
         bot.send_sticker(message.chat.id, 'CAADAgAD9QAD1JkmDVKDeGMmj73RFgQ')
-    # кажется, Игорь не согласен
-    # elif message.text.lower() == 'пизда':
-    #     bot.send_sticker(message.chat.id, 'CAADAgAD0wAD1JkmDRI4IyyS5lBtFgQ')
     else:
         bot.reply_to(message, f'Сам {message.text} 🎅🏽')
         # bot.send_message(message.chat.id, text='Санту не пересантишь текстами! 🎅🏽')
@@ -1074,7 +1017,6 @@ def edit_message(message):
 
 @bot.message_handler(content_types=['sticker'])
 def santa_sticker(message):
-    # bot.send_sticker(message.chat.id, 'CAADAgADswAD1JkmDeRY6OpJBI6iFgQ')
     bot.send_sticker(message.chat.id, 'CAADAgAD8gAD1JkmDaqAhDTZW4DIFgQ')
     bot.send_message(message.chat.id, text='Стикерит, стикерит, да не перестикерит! 🎅🏽')
     logmess(message)
