@@ -660,6 +660,16 @@ def give_help(message):
     logmess(message)
 
 
+# пасхалка-извинялка
+@bot.message_handler(commands=['cubic'])
+def cubic_rubik(message):
+    if message.chat.type == 'private':
+        bot.send_message(message.chat.id, text='CRM недорого. Чача хуже всех.')
+    else:
+        bot.send_message(message.chat.id, text='Упс. Санта-бот работает только в режиме тет-а-тет.')
+    logmess(message)
+
+
 @bot.message_handler(commands=['smarthead'])
 def smart_head(message):
     if message.chat.type == 'private':
@@ -771,6 +781,7 @@ def confirm_run_game(message):
         curs.execute('SELECT id FROM Groups WHERE title=:title '
                      'AND raffle=:raffle', {'title': message.text, 'raffle': 0})
         group_id = curs.fetchall()
+        print(f'group_id: {group_id[0][0]}')
 
         if len(group_id) == 0:
             # убить клавиатуру
@@ -805,7 +816,7 @@ def confirm_run_game(message):
     logmess(message)
 
 
-# ВЫОЛНЕНИЕ РОЗЫГРЫША ТОЛЬКО В ПОСЛЕ ПОДТВЕРЖДЕНИЯ
+# ВЫОЛНЕНИЕ РОЗЫГРЫША ТОЛЬКО ПОСЛЕ ПОДТВЕРЖДЕНИЯ
 def run_game(run_group_id):
 
     # run_group_id - это пришедший из кнопки group_id
@@ -917,13 +928,13 @@ def run_game(run_group_id):
         if info[0][3] == None or info[0][3] == '':
             player_wish = 'не написано'
         else:
-            player_wish = f'_«{info[0][3]}»_'
+            player_wish = f'«{info[0][3]}»'
 
         # бот должен проверять доступность юзера перед отправкой, чтобы не падать
-        print(f'santa_tg_id: {santa_tg_id[0][0]}')
         try:
+            # for i in range(10):
             # отправляем информацию Санте!
-            bot.send_message(santa_tg_id[0][0], parse_mode='Markdown',
+            bot.send_message(santa_tg_id[0][0],
                              text=f'☃️❄️☃️❄️☃️❄️☃️❄️☃️❄️️☃️️\n\n'
                                   f'Ура! Розыгрыш в группe «{group_data[0][2]}» завершён! ✨\n\n'
                                   f'Ты будешь Тайным Сантой для человека по имени '
@@ -955,7 +966,7 @@ def run_game(run_group_id):
             if info[0][3] == None or info[0][3] == '':
                 pl_wish = 'отсутствует'
             else:
-                pl_wish = f'«_{info[0][3]}_»'
+                pl_wish = f'«{info[0][3]}»'
                 print(f'pl_wish: {pl_wish}')
 
             if missing_santa[0][2] == None or missing_santa[0][2] == '':
@@ -968,14 +979,7 @@ def run_game(run_group_id):
             else:
                 play_username = f'@{info[0][2]}'
 
-            # bot.send_message(leader_telegram_id[0][0], text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
-            #                                                 f'Игрок {missing_santa_name} — {santa_username} '
-            #                                                 f'не получил послaние игрока {player_name} — {play_username} '
-            #                                                 f'{pl_wish} 🥺 \n\n'
-            #                                                 f'Сообщи устно и проследи, чтобы {player_name} и подарок встретились! ✨',
-            #                  parse_mode='Markdown')
-
-            bot.send_message(leader_telegram_id[0][0], parse_mode='Markdown',
+            bot.send_message(leader_telegram_id[0][0],
                              text=f'🔴 Бедствие: пропавший Тайный Санта! 🔴 \n\n'
                                   f'Игрок: {missing_santa_name}\n'
                                   f'телеграм-ник: {santa_username}\n'
