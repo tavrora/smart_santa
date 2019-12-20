@@ -548,13 +548,20 @@ def smart_head(message):
 @bot.message_handler(commands=['enterwish'])
 def enter_new_wish(message):
     if message.chat.type == 'private':
-        # проверяем, что пользователь есть в бд и у него есть текущая группа
+        # проверяем, что пользователь есть в бд и у него есть текущая группа,
+        # и он в ней участвует partisipation_status[0][2] == 1 (т.к. он мог выйти из нее)
         # Если есть парамтр запуска, то не давать выбирать, если нет - это обработано уже
-        user_curr_gr = db.select_user_by_tg_id(message.chat.id)
+        current_user = db.select_user_by_tg_id(message.chat.id)
+        current_group = db.select_group_by_start_parameter(current_user[0][5])
+        partisipation_status = db.select_rel_user_with_group(current_user[0][0], current_group[0][0])
 
-        if user_curr_gr[0][5] != None and user_curr_gr[0][5] != '':
+        if current_user[0][5] != None and current_user[0][5] != '' and partisipation_status[0][2] == 1:
             bot.send_message(message.chat.id, text='Санта ждёт твоего пожелания! 🎁')
             bot.register_next_step_handler(message, get_wish)
+
+        elif current_user[0][5] != None and current_user[0][5] != '' and partisipation_status[0][2] == 0:
+            bot.send_message(message.chat.id, text=f'Ой! Ты ещё не принял участие в группе «{current_group[0][1]}»! 🎄'
+                                                   f'Перейди по ссылке-приглашению вновь и сделай правильный выбор! ;)')
 
         else:
             bot.send_message(message.chat.id, text='Начни с команды /start и создай свою первую группу для розыгрыша подарков! '
